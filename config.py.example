@@ -1,0 +1,19 @@
+# This is an example configuration file. Copy this to config.py and fill in your values.
+
+# Bot settings
+BOT_TOKEN = "your_bot_token_here"  # Get this from @BotFather
+
+# Database settings (if you need them in future)
+DB_HOST = "localhost"
+DB_NAME = "database_name"
+DB_USER = "user"
+DB_PASS = "password"
+
+# Other settings
+ADMIN_IDS = [  # List of admin user IDs
+    123456789,
+    987654321
+]
+
+# Debug mode
+DEBUG = False
