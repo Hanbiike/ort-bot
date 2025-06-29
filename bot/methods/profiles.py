@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, List, Tuple
 import datetime
-from methods.utils import read_json_file, write_json_file
+from .utils import read_json_file, write_json_file
 
 @dataclass
 class Profile:

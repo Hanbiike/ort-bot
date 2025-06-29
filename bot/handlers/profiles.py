@@ -3,104 +3,19 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from methods.profiles import ProfileManager
-from methods.users import user_lang
-from methods.validators import validate_score
-from keyboards import menu
-from config import OWNER_ID, MAX_SCORE
+from ..methods.profiles import ProfileManager
+from ..methods.users import user_lang
+from ..methods.validators import validate_score
+from ..keyboards import menu
+from ..config import OWNER_ID, MAX_SCORE
 
 router = Router()
 profile_manager = ProfileManager()
+get_message = profile_manager.get_message
 
 class ProfileStates(StatesGroup):
     waiting_for_name = State()
     waiting_for_score = State()
-
-MESSAGES = {
-    "profile_not_found": {
-        "ru": "❌ Профиль не найден.\nХотите создать новый профиль?",
-        "kg": "❌ Профиль табылган жок.\nЖаңы профиль түзгүңүз келеби?"
-    },
-    "profile_template": {
-        "ru": "📋 Ваш профиль:\n\n👤 ФИО: {name}\n📊 Балл ОРТ: {score}\n🏆 Место в рейтинге: {rank}/{total}",
-        "kg": "📋 Сиздин профилиңиз:\n\n👤 ФАА: {name}\n📊 ЖРТ баллы: {score}\n🏆 Рейтингдеги орун: {rank}/{total}"
-    },
-    "update_profile": {
-        "ru": "Обновить профиль",
-        "kg": "Профилди жаңыртуу"
-    },
-    "rating": {
-        "ru": "Рейтинг",
-        "kg": "Рейтинг"
-    },
-    "yes": {
-        "ru": "✅ Да",
-        "kg": "✅ Ооба"
-    },
-    "no": {
-        "ru": "❌ Нет",
-        "kg": "❌ Жок"
-    },
-    "menu": {
-        "ru": "Главное меню",
-        "kg": "Башкы меню"
-    },
-    "enter_full_name": {
-        "ru": "Введите ваше ФИО:",
-        "kg": "ФААңызды жазыңыз:"
-    },
-    "enter_score": {
-        "ru": "Введите ваш балл ОРТ (от 0 до 245):",
-        "kg": "ЖРТ баллыңызды жазыңыз (0дон 245ге чейин):"
-    },
-    "invalid_score": {
-        "ru": "❌ Неверный формат балла. Введите число от 0 до 245.",
-        "kg": "❌ Туура эмес балл. 0дон 245ге чейинки санды жазыңыз."
-    },
-    "profile_submitted": {
-        "ru": "✅ Ваш профиль отправлен на проверку.\n\n⚠️ Для подтверждения баллов отправьте сертификат пробного ОРТ ЦООМО админу @R_anony",
-        "kg": "✅ Сиздин профилиңиз текшерүүгө жөнөтүлдү.\n\n⚠️ Баллдарды тастыктоо үчүн ЦООМО сынак ЖРТнын сертификатын @R_anony админге жөнөтүңүз"
-    },
-    "profile_creation_rejected": {
-        "ru": "❌ Создание профиля отменено.",
-        "kg": "❌ Профиль түзүү жокко чыгарылды."
-    },
-    "error_occurred": {
-        "ru": "❌ Произошла ошибка. Попробуйте позже.",
-        "kg": "❌ Ката кетти. Кийинчерээк кайталаңыз."
-    },
-    "approve": {
-        "ru": "✅ Подтвердить",
-        "kg": "✅ Тастыктоо"
-    },
-    "reject": {
-        "ru": "❌ Отклонить",
-        "kg": "❌ Четке кагуу"
-    },
-    "new_profile_admin": {
-        "ru": "📝 Новый профиль от {user}:\n👤 ФИО: {name}\n📊 Балл ОРТ: {score}",
-        "kg": "📝 Жаңы профиль {user}:\n👤 ФАА: {name}\n📊 ЖРТ баллы: {score}"
-    },
-    "rankings_header": {
-        "ru": "🏆 Рейтинг по баллам ОРТ:",
-        "kg": "🏆 ЖРТ баллдары боюнча рейтинг:"
-    },
-    "ranking_line": {
-        "ru": "{pos}. {name} - {score} баллов\n",
-        "kg": "{pos}. {name} - {score} балл\n"
-    },
-    "user_ranking_line": {
-        "ru": "\n... Ваше место: {rank}. {name} - {score} баллов\n",
-        "kg": "\n... Сиздин орунуңуз: {rank}. {name} - {score} балл\n"
-    },
-    "total_participants": {
-        "ru": "\n\nВсего участников: {total}",
-        "kg": "\n\nБардык катышуучулар: {total}"
-    }
-}
-
-def get_message(key: str, lang: str) -> str:
-    return MESSAGES.get(key, {}).get(lang, "Message not found")
 
 async def get_profile_keyboard(lang: str) -> types.ReplyKeyboardMarkup:
     return types.ReplyKeyboardMarkup(
@@ -306,3 +221,4 @@ async def show_rankings(message: types.Message):
     )
     
     await message.answer(rankings_text)
+

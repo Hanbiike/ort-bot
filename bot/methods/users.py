@@ -5,8 +5,8 @@ import re
 import asyncio
 from functools import lru_cache
 from aiogram import Router, F, types, Bot
-from config import BOT_TOKEN, OWNER_ID, GROUP_ID, DATA_FILE
-from methods.utils import read_json_file, write_json_file
+from ..config import BOT_TOKEN, OWNER_ID, GROUP_ID, DATA_FILE
+from .utils import read_json_file, write_json_file
 
 bot = Bot(token=BOT_TOKEN)
 router = Router()

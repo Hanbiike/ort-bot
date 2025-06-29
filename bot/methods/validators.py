@@ -1,4 +1,4 @@
-from config import MAX_SCORE
+from ..config import MAX_SCORE
 
 def validate_score(score_text: str) -> int:
     if not score_text.isdigit():

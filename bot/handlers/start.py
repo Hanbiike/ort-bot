@@ -1,19 +1,17 @@
-from aiogram import Router, F, Bot, types
+from aiogram import Router, F, types
 from aiogram.filters.command import Command
 from aiogram.filters import CommandStart
-from aiogram.types import Chat
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from methods.users import update_user_lang, user_lang
-from methods.admins import is_admin
-from keyboards import menu
-from config import HAN_ID, CHANNEL_ID, BOT_TOKEN
+from ..methods.users import update_user_lang, user_lang
+from ..methods.admins import is_admin
+from ..keyboards import menu
+from ..config import HAN_ID, CHANNEL_ID
 
 # Константы
 # ...existing code...
 
 router = Router()
-bot = Bot(token=BOT_TOKEN)
 
 def create_language_keyboard():
     """Создать клавиатуру для выбора языка."""
@@ -88,6 +86,7 @@ async def check_subscription(callback: types.CallbackQuery):
     
     try:
         user_id = callback.from_user.id
+        bot = callback.bot
         user_channel_status = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         lang = await user_lang(user_id)
         

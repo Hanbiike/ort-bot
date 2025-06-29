@@ -14,8 +14,8 @@ import time
 from datetime import datetime, timedelta
 
 # Constants
-from config import API_TOKEN, GROUPS_FILE, HAN_ID
-from methods.admins import is_admin, add_admin, remove_admin, get_all_admins
+from ..config import API_TOKEN, GROUPS_FILE, HAN_ID
+from .admins import is_admin, add_admin, remove_admin, get_all_admins
 
 logger = logging.getLogger(__name__)
 

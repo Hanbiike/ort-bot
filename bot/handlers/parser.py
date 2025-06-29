@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from aiogram import types, Router
 from aiogram.filters import Command
-from config import CHANNEL_ID
+from ..config import CHANNEL_ID
 
 BASE_URL = "https://edu.gov.kg/posts/"
 CHAT_ID = CHANNEL_ID

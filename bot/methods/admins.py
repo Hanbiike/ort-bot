@@ -2,7 +2,7 @@ import json
 import os
 from typing import List, Set
 import logging
-from config import HAN_ID
+from ..config import HAN_ID
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 from aiogram import types, Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message
-from methods.users import *
-from methods.admins import is_admin
+from ..methods.users import user_lang, update_user_lang
+from ..methods.admins import is_admin
 
 router = Router()
 
