@@ -3,7 +3,7 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 import asyncio
 from aiogram import Bot, Dispatcher
-from handlers import start, calc, profiles, parser
+from handlers import start, calc, profiles, parser, file_id
 from methods import admin, users
 from keyboards import menu
 from config import BOT_TOKEN
@@ -20,7 +20,8 @@ async def main():
         users.router,
         calc.router,
         profiles.router,
-        parser.router
+        parser.router,
+        file_id.router
     )
     # Schedule poll_news as a background task
     asyncio.create_task(poll_news())
