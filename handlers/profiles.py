@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, WebAppInfo
 from methods.profiles import ProfileManager
+from methods.scan import DocScanner
 from methods.users import user_lang
 from methods.validators import validate_score
 from keyboards import menu
@@ -345,7 +346,9 @@ async def handle_scan(message: types.Message):
         if image_data:
             header, b64 = image_data.split(",", 1)
             image_bytes = base64.b64decode(b64)
-            bio = BytesIO(image_bytes)
+            scanner = DocScanner()
+            processed = scanner.scan_bytes(image_bytes)
+            bio = BytesIO(processed)
             bio.name = "scan.jpg"
             caption = (
                 f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
