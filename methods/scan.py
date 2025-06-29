@@ -263,20 +263,16 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image_path):
+    def _process_image(self, image):
+        """Process an image and return the scanned result as a numpy array."""
 
         RESCALED_HEIGHT = 500.0
-        OUTPUT_DIR = 'output'
 
-        # load the image and compute the ratio of the old height
-        # to the new height, clone it, and resize it
-        image = cv2.imread(image_path)
-
-        assert(image is not None)
+        assert image is not None
 
         ratio = image.shape[0] / RESCALED_HEIGHT
         orig = image.copy()
-        rescaled_image = imutils.resize(image, height = int(RESCALED_HEIGHT))
+        rescaled_image = imutils.resize(image, height=int(RESCALED_HEIGHT))
 
         # get the contour of the document
         screenCnt = self.get_contour(rescaled_image)
@@ -297,10 +293,28 @@ class DocScanner(object):
         # apply adaptive threshold to get black and white effect
         thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 15)
 
-        # save the transformed image
+        return thresh
+
+    def scan(self, image_path):
+
+        OUTPUT_DIR = 'output'
+
+        image = cv2.imread(image_path)
+
         basename = os.path.basename(image_path)
-        cv2.imwrite(OUTPUT_DIR + '/' + basename, thresh)
+        result = self._process_image(image)
+
+        cv2.imwrite(OUTPUT_DIR + '/' + basename, result)
         print("Proccessed " + basename)
+
+    def scan_bytes(self, image_bytes):
+        """Scan an image provided as bytes and return processed JPEG bytes."""
+
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        result = self._process_image(image)
+        _, buffer = cv2.imencode('.jpg', result)
+        return buffer.tobytes()
 
 
 if __name__ == "__main__":
