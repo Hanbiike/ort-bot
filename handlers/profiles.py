@@ -2,12 +2,15 @@ from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, WebAppInfo
 from methods.profiles import ProfileManager
 from methods.users import user_lang
 from methods.validators import validate_score
 from keyboards import menu
-from config import OWNER_ID, MAX_SCORE
+from config import OWNER_ID, MAX_SCORE, SCANNER_WEBAPP_URL
+import json
+import base64
+from io import BytesIO
 
 router = Router()
 profile_manager = ProfileManager()
@@ -58,8 +61,16 @@ MESSAGES = {
         "kg": "❌ Туура эмес балл. 0дон 245ге чейинки санды жазыңыз."
     },
     "profile_submitted": {
-        "ru": "✅ Ваш профиль отправлен на проверку.\n\n⚠️ Для подтверждения баллов отправьте сертификат пробного ОРТ ЦООМО админу @R_anony",
-        "kg": "✅ Сиздин профилиңиз текшерүүгө жөнөтүлдү.\n\n⚠️ Баллдарды тастыктоо үчүн ЦООМО сынак ЖРТнын сертификатын @R_anony админге жөнөтүңүз"
+        "ru": "✅ Ваш профиль отправлен на проверку.\nНажмите кнопку ниже и сфотографируйте сертификат.",
+        "kg": "✅ Сиздин профилиңиз текшерүүгө жөнөтүлдү.\nТөмөнкү баскычты басып, сертификатты сүрөткө тартыңыз."
+    },
+    "send_photo": {
+        "ru": "📸 Отправить фото",
+        "kg": "📸 Сүрөт жөнөтүү"
+    },
+    "photo_received": {
+        "ru": "✅ Фото отправлено на проверку.",
+        "kg": "✅ Сүрөт текшерүүгө жөнөтүлдү."
     },
     "profile_creation_rejected": {
         "ru": "❌ Создание профиля отменено.",
@@ -117,6 +128,19 @@ async def get_confirmation_keyboard(lang: str) -> types.ReplyKeyboardMarkup:
         keyboard=[[
             types.KeyboardButton(text=get_message("yes", lang)),
             types.KeyboardButton(text=get_message("no", lang)),
+            types.KeyboardButton(text=get_message("menu", lang))
+        ]],
+        resize_keyboard=True
+    )
+
+async def get_scan_keyboard(lang: str) -> types.ReplyKeyboardMarkup:
+    return types.ReplyKeyboardMarkup(
+        keyboard=[[
+            types.KeyboardButton(
+                text=get_message("send_photo", lang),
+                web_app=WebAppInfo(url=SCANNER_WEBAPP_URL)
+            )
+        ], [
             types.KeyboardButton(text=get_message("menu", lang))
         ]],
         resize_keyboard=True
@@ -192,7 +216,10 @@ async def process_score(message: types.Message, state: FSMContext):
             score
         )
         
-        await message.answer(get_message("profile_submitted", lang))
+        await message.answer(
+            get_message("profile_submitted", lang),
+            reply_markup=await get_scan_keyboard(lang)
+        )
         
         markup = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
@@ -304,5 +331,35 @@ async def show_rankings(message: types.Message):
         lang,
         top_count=10
     )
-    
+
     await message.answer(rankings_text)
+
+
+@router.message(F.web_app_data)
+async def handle_scan(message: types.Message):
+    """Receive photo from WebApp and forward to admin."""
+    lang = await user_lang(message.from_user.id)
+    try:
+        data = json.loads(message.web_app_data.data)
+        image_data = data.get("image")
+        if image_data:
+            header, b64 = image_data.split(",", 1)
+            image_bytes = base64.b64decode(b64)
+            bio = BytesIO(image_bytes)
+            bio.name = "scan.jpg"
+            caption = (
+                f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
+                f"{message.from_user.full_name}</a>"
+            )
+            await message.bot.send_photo(
+                OWNER_ID, bio, caption=caption, parse_mode="HTML"
+            )
+            await message.answer(
+                get_message("photo_received", lang),
+                reply_markup=await get_profile_keyboard(lang)
+            )
+        else:
+            await message.answer(get_message("error_occurred", lang))
+    except Exception as e:
+        print(f"Error processing webapp data: {e}")
+        await message.answer(get_message("error_occurred", lang))

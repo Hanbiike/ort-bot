@@ -31,3 +31,6 @@ OWNER_ID = 631573859
 GROUP_ID = -1001932954655
 DATA_FILE = 'schedule.json'
 
+# URL of WebApp used for scanning ORT certificates
+SCANNER_WEBAPP_URL = 'https://hanbiike.github.io/ortscan/'
+
