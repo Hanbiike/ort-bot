@@ -11,7 +11,7 @@ from handlers.parser import poll_news, set_bot
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
-    set_bot(bot)
+    #set_bot(bot)
     dp = Dispatcher()
     dp.include_routers(
         start.router,
@@ -20,7 +20,7 @@ async def main():
         users.router,
         calc.router,
         profiles.router,
-        parser.router,
+        #parser.router,
         file_id.router
     )
     # Schedule poll_news as a background task
