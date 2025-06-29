@@ -17,6 +17,7 @@ router = Router()
 profile_manager = ProfileManager()
 
 class ProfileStates(StatesGroup):
+    waiting_for_sheet = State()
     waiting_for_name = State()
     waiting_for_score = State()
 
@@ -62,12 +63,20 @@ MESSAGES = {
         "kg": "❌ Туура эмес балл. 0дон 245ге чейинки санды жазыңыз."
     },
     "profile_submitted": {
-        "ru": "✅ Ваш профиль отправлен на проверку.\nНажмите кнопку ниже и сфотографируйте сертификат.",
-        "kg": "✅ Сиздин профилиңиз текшерүүгө жөнөтүлдү.\nТөмөнкү баскычты басып, сертификатты сүрөткө тартыңыз."
+        "ru": "✅ Ваш профиль отправлен на проверку.",
+        "kg": "✅ Сиздин профилиңиз текшерүүгө жөнөтүлдү."
     },
     "send_photo": {
         "ru": "📸 Отправить фото",
         "kg": "📸 Сүрөт жөнөтүү"
+    },
+    "send_result_sheet": {
+        "ru": "📄 Отправьте фото листа с результатами по одному. Когда закончите, напишите 'Готово'.",
+        "kg": "📄 Натыйжалар барагынын сүрөтүн бирден жөнөтүңүз. Бүтсөңүз 'Бүттү' деп жазыңыз."
+    },
+    "sheet_received": {
+        "ru": "✅ Фото получено. Отправьте следующее или напишите 'Готово'.",
+        "kg": "✅ Сүрөт алынды. Кийинкисин жөнөтүңүз же 'Бүттү' деп жазыңыз."
     },
     "photo_received": {
         "ru": "✅ Фото отправлено на проверку.",
@@ -184,8 +193,49 @@ async def reject_profile_creation(message: types.Message):
 async def update_profile_start(message: types.Message, state: FSMContext):
     lang = await user_lang(message.from_user.id)
     await message.answer(
-        get_message("enter_full_name", lang)
+        get_message("send_result_sheet", lang)
     )
+    await state.set_state(ProfileStates.waiting_for_sheet)
+
+DONE_WORDS = ["готово", "бүттү"]
+
+@router.message(ProfileStates.waiting_for_sheet, F.photo)
+@router.message(ProfileStates.waiting_for_sheet, F.document)
+async def process_result_sheet(message: types.Message, state: FSMContext):
+    lang = await user_lang(message.from_user.id)
+    try:
+        file_id = None
+        if message.photo:
+            file_id = message.photo[-1].file_id
+        elif message.document:
+            file_id = message.document.file_id
+        if not file_id:
+            return
+        file = await message.bot.get_file(file_id)
+        file_bytes = await message.bot.download_file(file.file_path)
+        image_bytes = file_bytes.read()
+
+        scanner = DocScanner()
+        processed = scanner.scan_bytes(image_bytes)
+        bio = BytesIO(processed)
+        bio.name = "scan.jpg"
+        caption = (
+            f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
+            f"{message.from_user.full_name}</a>"
+        )
+        await message.bot.send_photo(
+            OWNER_ID, bio, caption=caption, parse_mode="HTML"
+        )
+        await message.answer(get_message("sheet_received", lang))
+    except Exception as e:
+        print(f"Error processing sheet: {e}")
+        await message.answer(get_message("error_occurred", lang))
+
+
+@router.message(ProfileStates.waiting_for_sheet, F.text.casefold().in_(DONE_WORDS))
+async def finish_sheet_upload(message: types.Message, state: FSMContext):
+    lang = await user_lang(message.from_user.id)
+    await message.answer(get_message("enter_full_name", lang))
     await state.set_state(ProfileStates.waiting_for_name)
 
 @router.message(ProfileStates.waiting_for_name)
@@ -219,7 +269,7 @@ async def process_score(message: types.Message, state: FSMContext):
         
         await message.answer(
             get_message("profile_submitted", lang),
-            reply_markup=await get_scan_keyboard(lang)
+            reply_markup=await get_profile_keyboard(lang)
         )
         
         markup = InlineKeyboardMarkup(inline_keyboard=[[
