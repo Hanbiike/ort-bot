@@ -14,7 +14,7 @@ import time
 from datetime import datetime, timedelta
 
 # Constants
-from ..config import API_TOKEN, GROUPS_FILE, HAN_ID
+from ..config import API_TOKEN, GROUPS_FILE, HAN_ID, DATA_FILE
 from .admins import is_admin, add_admin, remove_admin, get_all_admins
 
 logger = logging.getLogger(__name__)
@@ -215,7 +215,7 @@ async def process_confirmation(callback_query: types.CallbackQuery, state: FSMCo
 
     # Regular broadcast
     try:
-        with open('schedule.json', 'r') as file:
+        with open(DATA_FILE, 'r') as file:
             schedule_data = json.load(file)
             user_ids = [info["user_id"] for info in schedule_data.values()]
     except Exception as e:

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 # Bot settings
 BOT_TOKEN = "7324399404:AAFuRN0Jz3N70Wc-4bOoR4PATJAiO-eb2U0"  # Get this from @BotFather
 API_TOKEN = BOT_TOKEN  # Alias for consistency
@@ -23,11 +25,15 @@ CHANNEL_ID = -1001180087578
 HAN_USER_ID = HAN_ID
 MAX_SCORE = 245
 
+# Paths
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+
 # File settings
-GROUPS_FILE = 'groups.txt'
+GROUPS_FILE = DATA_DIR / "groups.txt"
 
 # Bot and group settings
 OWNER_ID = 631573859
 GROUP_ID = -1001932954655
-DATA_FILE = 'schedule.json'
+DATA_FILE = DATA_DIR / 'schedule.json'
 

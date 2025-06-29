@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, List, Tuple
 import datetime
+from pathlib import Path
+from ..config import DATA_DIR
 from .utils import read_json_file, write_json_file
 
 @dataclass
@@ -12,8 +14,8 @@ class Profile:
 
 class ProfileManager:
     def __init__(self):
-        self.profiles_file = "profiles.json"
-        self.pending_file = "pending_profiles.json"
+        self.profiles_file = DATA_DIR / "profiles.json"
+        self.pending_file = DATA_DIR / "pending_profiles.json"
         self.default_profiles = {"profiles": {}}
         self.default_pending = {"pending": {}}
 
