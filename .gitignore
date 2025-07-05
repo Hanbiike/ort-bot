@@ -112,3 +112,10 @@ cython_debug/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Local data files that may change and should not be tracked
+groups.txt
+profiles.json
+pending_profiles.json
+schedule.json
+state.json
