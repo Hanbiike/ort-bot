@@ -2,7 +2,7 @@ from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, WebAppInfo
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, WebAppInfo, BufferedInputFile
 from methods.profiles import ProfileManager
 from methods.scan import DocScanner
 from methods.users import user_lang
@@ -215,16 +215,18 @@ async def process_result_sheet(message: types.Message, state: FSMContext):
         file_bytes = await message.bot.download_file(file.file_path)
         image_bytes = file_bytes.read()
 
-        scanner = DocScanner()
+        # High quality black and white scan with filters
+        scanner = DocScanner(preserve_quality=True, apply_filters=True)
         processed = scanner.scan_bytes(image_bytes)
-        bio = BytesIO(processed)
-        bio.name = "scan.jpg"
         caption = (
             f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
             f"{message.from_user.full_name}</a>"
         )
-        await message.bot.send_photo(
-            OWNER_ID, bio, caption=caption, parse_mode="HTML"
+        await message.bot.send_document(
+            OWNER_ID, 
+            BufferedInputFile(processed, filename="scan.png"), 
+            caption=caption, 
+            parse_mode="HTML"
         )
         await message.answer(get_message("sheet_received", lang))
     except Exception as e:
@@ -396,16 +398,18 @@ async def handle_scan(message: types.Message):
         if image_data:
             header, b64 = image_data.split(",", 1)
             image_bytes = base64.b64decode(b64)
-            scanner = DocScanner()
+            # High quality black and white scan with filters
+            scanner = DocScanner(preserve_quality=True, apply_filters=True)
             processed = scanner.scan_bytes(image_bytes)
-            bio = BytesIO(processed)
-            bio.name = "scan.jpg"
             caption = (
                 f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
                 f"{message.from_user.full_name}</a>"
             )
-            await message.bot.send_photo(
-                OWNER_ID, bio, caption=caption, parse_mode="HTML"
+            await message.bot.send_document(
+                OWNER_ID, 
+                BufferedInputFile(processed, filename="scan.png"), 
+                caption=caption, 
+                parse_mode="HTML"
             )
             await message.answer(
                 get_message("photo_received", lang),

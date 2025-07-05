@@ -24,7 +24,7 @@ async def main():
         file_id.router
     )
     # Schedule poll_news as a background task
-    asyncio.create_task(poll_news())
+    #asyncio.create_task(poll_news())
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ import os
 class DocScanner(object):
     """An image scanner"""
 
-    def __init__(self, interactive=False, MIN_QUAD_AREA_RATIO=0.25, MAX_QUAD_ANGLE_RANGE=40):
+    def __init__(self, interactive=False, MIN_QUAD_AREA_RATIO=0.25, MAX_QUAD_ANGLE_RANGE=40, preserve_quality=True, apply_filters=True):
         """
         Args:
             interactive (boolean): If True, user can adjust screen contour before
@@ -35,10 +35,16 @@ class DocScanner(object):
                 of the original image. Defaults to 0.25.
             MAX_QUAD_ANGLE_RANGE (int):  A contour will also be rejected if the range 
                 of its interior angles exceeds MAX_QUAD_ANGLE_RANGE. Defaults to 40.
+            preserve_quality (boolean): If True, use higher resolution and PNG format.
+                Defaults to False.
+            apply_filters (boolean): If True, apply grayscale conversion, sharpening 
+                and adaptive threshold. If False, return color image. Defaults to True.
         """        
         self.interactive = interactive
         self.MIN_QUAD_AREA_RATIO = MIN_QUAD_AREA_RATIO
-        self.MAX_QUAD_ANGLE_RANGE = MAX_QUAD_ANGLE_RANGE        
+        self.MAX_QUAD_ANGLE_RANGE = MAX_QUAD_ANGLE_RANGE
+        self.preserve_quality = preserve_quality
+        self.apply_filters = apply_filters
 
     def filter_corners(self, corners, min_dist=20):
         """Filters corners that are within min_dist of others"""
@@ -266,7 +272,8 @@ class DocScanner(object):
     def _process_image(self, image):
         """Process an image and return the scanned result as a numpy array."""
 
-        RESCALED_HEIGHT = 500.0
+        # Increase processing resolution for better edge detection
+        RESCALED_HEIGHT = 800.0 if self.preserve_quality else 500.0
 
         assert image is not None
 
@@ -282,6 +289,10 @@ class DocScanner(object):
 
         # apply the perspective transformation
         warped = transform.four_point_transform(orig, screenCnt * ratio)
+
+        # If apply_filters is False, return the warped color image
+        if not self.apply_filters:
+            return warped
 
         # convert the warped image to grayscale
         gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
@@ -308,12 +319,20 @@ class DocScanner(object):
         print("Proccessed " + basename)
 
     def scan_bytes(self, image_bytes):
-        """Scan an image provided as bytes and return processed JPEG bytes."""
+        """Scan an image provided as bytes and return processed image bytes."""
 
         nparr = np.frombuffer(image_bytes, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         result = self._process_image(image)
-        _, buffer = cv2.imencode('.jpg', result)
+        
+        # Use higher quality JPEG encoding or PNG for lossless compression
+        if self.preserve_quality:
+            # Use PNG for lossless compression when preserving quality
+            _, buffer = cv2.imencode('.png', result)
+        else:
+            # Use high quality JPEG (95% quality)
+            _, buffer = cv2.imencode('.jpg', result, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        
         return buffer.tobytes()
 
 

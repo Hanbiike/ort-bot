@@ -41,5 +41,5 @@ async def send_file_id(message: types.Message):
 
     if file_id:
         lang = await user_lang(message.from_user.id)
-        text = "ID файла: {}" if lang == "ru" else "Файлдын IDси: {}"
-        await message.answer(text.format(file_id))
+        text = "ID файла:\n```\n{}\n```" if lang == "ru" else "Файлдын IDси:\n```\n{}\n```"
+        await message.answer(text.format(file_id), parse_mode="Markdown")
