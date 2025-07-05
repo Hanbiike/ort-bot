@@ -89,6 +89,23 @@ class MessageContent:
             logger.error(f"Error sending to {chat_id}: {e}")
             return False
 
+async def broadcast_to_groups(content: MessageContent, group_ids: List[int], pin_option: str, progress_callback=None) -> BroadcastStatus:
+    status = BroadcastStatus(total=len(group_ids), start_time=datetime.now())
+    for gid in group_ids:
+        try:
+            msg = await content.send(bot, gid)
+            if pin_option in ["pin_with_notification", "pin_without_notification"] and isinstance(msg, types.Message):
+                await bot.pin_chat_message(gid, msg.message_id, disable_notification=(pin_option=="pin_without_notification"))
+            status.sent += 1
+        except Exception as e:
+            logger.error(f"Error sending to group {gid}: {e}")
+            status.failed += 1
+        if progress_callback:
+            await progress_callback(status)
+        await asyncio.sleep(0.05)
+    status.end_time = datetime.now()
+    return status
+
 class Cache:
     def __init__(self, ttl_seconds: int = 300):
         self._data: Dict = {}
@@ -117,7 +134,9 @@ class Cache:
 class States(StatesGroup):
     waiting_for_content = State()
     confirmation = State()
+    choose_target = State()
     pin_option = State()
+    final_confirmation = State()
     waiting_for_admin_id = State()    # New state for admin management
 
 bot = Bot(token=API_TOKEN)
@@ -140,6 +159,27 @@ def load_groups() -> List[int]:
         logger.error(f"Error reading groups: {e}")
         return []
 
+
+@router.message(F.text.lower() == "сезам откройся")
+async def add_group_id(message: types.Message):
+    if message.chat.type not in ["group", "supergroup"]:
+        return
+
+    group_id = message.chat.id
+    groups = set(load_groups())
+    if group_id in groups:
+        await message.reply("Группа уже добавлена.")
+        return
+
+    try:
+        with open(GROUPS_FILE, "a") as file:
+            file.write(f"{group_id}\n")
+        cache.clear()
+        await message.reply("Группа добавлена в список рассылки.")
+    except Exception as e:
+        logger.error(f"Error adding group: {e}")
+        await message.reply("Не удалось добавить группу.")
+
 @router.message(F.text.lower().in_(["рассылка", "анонс"]))
 async def start_process(message: types.Message, state: FSMContext):
     # Check if user is admin
@@ -147,32 +187,32 @@ async def start_process(message: types.Message, state: FSMContext):
         await message.answer("У вас нет прав для выполнения этой команды.")
         return
         
-    await state.update_data(mode=message.text.lower())
     await state.set_state(States.waiting_for_content)
     await message.answer("Ожидаю сообщение или изображение")
 
 @router.message(States.waiting_for_content, F.content_type.in_(['text', 'photo']))
 async def handle_content(message: types.Message, state: FSMContext):
-    content = (message.html_text if message.content_type == 'text'
-              else {"photo": message.photo[-1].file_id, "caption": message.html_text if message.caption else ""})
-    
+    content = (
+        message.html_text
+        if message.content_type == 'text'
+        else {"photo": message.photo[-1].file_id, "caption": message.html_text or ""}
+    )
+
     await state.update_data(content=content)
-    
+
     builder = InlineKeyboardBuilder()
     builder.add(types.InlineKeyboardButton(text="Да", callback_data="confirm"))
     builder.add(types.InlineKeyboardButton(text="Нет", callback_data="cancel"))
 
-    preview = ("📝 Текст:\n\n" + message.html_text) if message.content_type == 'text' else (
-        "🖼 Фото" + ("\n\n📝 Подпись:\n" + message.html_text if message.caption else " (без подписи)")
-    )
-    
     if message.content_type == 'photo':
         await message.answer_photo(
             message.photo[-1].file_id,
-            caption=f"⬆️ Предпросмотр\n\n{preview}",
+            caption=message.html_text or None,
             parse_mode='HTML'
         )
-    
+    else:
+        await message.answer(message.html_text, parse_mode='HTML')
+
     await message.answer(
         "Подтвердите отправку?",
         reply_markup=builder.as_markup()
@@ -188,57 +228,136 @@ async def process_confirmation(callback_query: types.CallbackQuery, state: FSMCo
         return
 
     data = await state.get_data()
-    mode = data.get('mode')
     content = MessageContent(data.get('content'))
 
-    if mode == 'анонс':
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(types.InlineKeyboardButton(
+        text="Только в группах",
+        callback_data="target_groups"
+    ))
+    keyboard.add(types.InlineKeyboardButton(
+        text="Всем пользователям",
+        callback_data="target_all"
+    ))
+
+    await callback_query.message.answer(
+        "Кому отправить сообщение?",
+        reply_markup=keyboard.as_markup()
+    )
+    await state.set_state(States.choose_target)
+
+
+@router.callback_query(States.choose_target)
+async def process_target(callback_query: types.CallbackQuery, state: FSMContext):
+    if callback_query.data not in ["target_groups", "target_all"]:
+        await callback_query.answer()
+        return
+
+    await state.update_data(target=callback_query.data)
+
+    if callback_query.data == "target_groups":
         keyboard = InlineKeyboardBuilder()
         keyboard.add(types.InlineKeyboardButton(
-            text="Закрепить с уведомлением", 
+            text="С закреплением",
             callback_data="pin_with_notification"
         ))
         keyboard.add(types.InlineKeyboardButton(
-            text="Закрепить без звука", 
+            text="Без закрепления",
             callback_data="pin_without_notification"
         ))
-        keyboard.add(types.InlineKeyboardButton(
-            text="Не закреплять", 
-            callback_data="do_not_pin"
-        ))
-        
+
         await callback_query.message.answer(
-            "Выберите опцию закрепления:",
+            "Закрепить сообщение?",
             reply_markup=keyboard.as_markup()
         )
         await state.set_state(States.pin_option)
+    else:
+        keyboard = InlineKeyboardBuilder()
+        keyboard.add(types.InlineKeyboardButton(text="Начать", callback_data="start"))
+        keyboard.add(types.InlineKeyboardButton(text="Отмена", callback_data="cancel"))
+
+        await callback_query.message.answer(
+            "Начать рассылку всем пользователям?",
+            reply_markup=keyboard.as_markup()
+        )
+        await state.set_state(States.final_confirmation)
+
+
+@router.callback_query(States.pin_option)
+async def process_pin_option(callback_query: types.CallbackQuery, state: FSMContext):
+    if callback_query.data not in ["pin_with_notification", "pin_without_notification"]:
+        await callback_query.answer()
         return
 
-    # Regular broadcast
-    try:
-        with open('schedule.json', 'r') as file:
-            schedule_data = json.load(file)
-            user_ids = [info["user_id"] for info in schedule_data.values()]
-    except Exception as e:
-        logger.error(f"Error loading users: {e}")
-        await callback_query.message.answer("Ошибка загрузки пользователей")
-        await state.clear()
-        return
+    await state.update_data(pin_option=callback_query.data)
 
-    status_message = await callback_query.message.answer(
-        f"Начинаю рассылку {len(user_ids)} пользователям..."
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(types.InlineKeyboardButton(text="Начать", callback_data="start"))
+    keyboard.add(types.InlineKeyboardButton(text="Отмена", callback_data="cancel"))
+
+    await callback_query.message.answer(
+        "Подтвердите рассылку в группах?",
+        reply_markup=keyboard.as_markup()
     )
+    await state.set_state(States.final_confirmation)
 
-    async def progress_callback(status: BroadcastStatus):
-        await status_message.edit_text(
-            f"Отправлено: {status.sent}/{status.total}\n"
-            f"Ошибок: {status.failed}"
+
+@router.callback_query(States.final_confirmation)
+async def process_final_confirmation(callback_query: types.CallbackQuery, state: FSMContext):
+    if callback_query.data == "cancel":
+        await state.clear()
+        await callback_query.message.answer("Отменено.")
+        return
+
+    data = await state.get_data()
+    content = MessageContent(data.get('content'))
+    target = data.get('target')
+
+    if target == "target_groups":
+        group_ids = load_groups()
+        status_message = await callback_query.message.answer(
+            f"Начинаю рассылку в {len(group_ids)} группах..."
         )
 
-    final_status = await broadcast_manager.broadcast(
-        content, 
-        user_ids, 
-        progress_callback
-    )
+        async def progress_callback(status: BroadcastStatus):
+            await status_message.edit_text(
+                f"Отправлено: {status.sent}/{status.total}\n"
+                f"Ошибок: {status.failed}"
+            )
+
+        final_status = await broadcast_to_groups(
+            content,
+            group_ids,
+            data.get('pin_option', "pin_without_notification"),
+            progress_callback,
+        )
+
+    else:
+        try:
+            with open('schedule.json', 'r') as file:
+                schedule_data = json.load(file)
+                user_ids = [info["user_id"] for info in schedule_data.values()]
+        except Exception as e:
+            logger.error(f"Error loading users: {e}")
+            await callback_query.message.answer("Ошибка загрузки пользователей")
+            await state.clear()
+            return
+
+        status_message = await callback_query.message.answer(
+            f"Начинаю рассылку {len(user_ids)} пользователям..."
+        )
+
+        async def progress_callback(status: BroadcastStatus):
+            await status_message.edit_text(
+                f"Отправлено: {status.sent}/{status.total}\n"
+                f"Ошибок: {status.failed}"
+            )
+
+        final_status = await broadcast_manager.broadcast(
+            content,
+            user_ids,
+            progress_callback,
+        )
 
     duration = final_status.end_time - final_status.start_time
     await callback_query.message.answer(
