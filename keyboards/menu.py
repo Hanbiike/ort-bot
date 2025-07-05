@@ -164,8 +164,7 @@ async def menu_admin(message: types.Message):
         [
             types.KeyboardButton(text="Подсчет баллов ОРТ"),
             types.KeyboardButton(text="Профиль"),
-            types.KeyboardButton(text="Рассылка"),
-            types.KeyboardButton(text="Анонс")
+            types.KeyboardButton(text="Рассылка")
         ],
         [
             types.KeyboardButton(text="Статистика")
