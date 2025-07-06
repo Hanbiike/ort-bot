@@ -109,8 +109,11 @@
     const quizContainer = document.getElementById('quiz');
     const resultDiv = document.getElementById('result');
     let answers = {};
+    const params = new URLSearchParams(window.location.search);
+    const testNum = params.get('test') || '1';
+    const answersFile = `answers${testNum}.json`;
 
-    fetch('answers.json')
+    fetch(answersFile)
         .then(r => r.json())
         .then(data => {
             answers = data;

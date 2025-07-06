@@ -46,6 +46,9 @@ async def menu_ru(message: types.Message):
             types.KeyboardButton(text="Материалы")
         ],
         [
+            types.KeyboardButton(text="Тесты"),
+        ],
+        [
             types.KeyboardButton(text="Университеты"),
         ],
         [
@@ -105,6 +108,9 @@ async def menu_kg(message: types.Message):
             types.KeyboardButton(text="Материалдар")
         ],
         [
+            types.KeyboardButton(text="Тесттер"),
+        ],
+        [
             types.KeyboardButton(text="Университеттер"),
         ],
         [
@@ -153,6 +159,9 @@ async def menu_admin(message: types.Message):
         [
             types.KeyboardButton(text="Чек-лист"),
             types.KeyboardButton(text="Материалы")
+        ],
+        [
+            types.KeyboardButton(text="Тесты"),
         ],
         [
             types.KeyboardButton(text="Университеты"),
