@@ -15,9 +15,14 @@ async def list_tests(message: types.Message):
     await message.answer("Выберите тест:", reply_markup=keyboard)
 
 @router.message(F.text.regexp(r"^Тест №(\d+)$"))
-async def start_test(message: types.Message, regexp: types.Match[str]):
-    num = int(regexp.group(1))
+async def start_test(message: types.Message):
+    import re
+    match = re.search(r"^Тест №(\d+)$", message.text)
+    if not match:
+        return
+    num = int(match.group(1))
     if not 1 <= num <= 10:
+        await message.answer("Неверный номер теста. Доступны тесты с 1 по 10.")
         return
     webapp_url = f"{QUIZ_WEBAPP_BASE_URL}?test={num}"
     kb = types.ReplyKeyboardMarkup(
