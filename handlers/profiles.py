@@ -390,33 +390,42 @@ async def show_rankings(message: types.Message):
 
 @router.message(F.web_app_data)
 async def handle_scan(message: types.Message):
-    """Receive photo from WebApp and forward to admin."""
+    """Receive data from WebApp."""
     lang = await user_lang(message.from_user.id)
     try:
         data = json.loads(message.web_app_data.data)
-        image_data = data.get("image")
-        if image_data:
-            header, b64 = image_data.split(",", 1)
-            image_bytes = base64.b64decode(b64)
-            # High quality black and white scan with filters
-            scanner = DocScanner(preserve_quality=True, apply_filters=True)
-            processed = scanner.scan_bytes(image_bytes)
-            caption = (
-                f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
-                f"{message.from_user.full_name}</a>"
-            )
-            await message.bot.send_document(
-                OWNER_ID, 
-                BufferedInputFile(processed, filename="scan.png"), 
-                caption=caption, 
-                parse_mode="HTML"
-            )
+        if "image" in data:
+            image_data = data.get("image")
+            if image_data:
+                header, b64 = image_data.split(",", 1)
+                image_bytes = base64.b64decode(b64)
+                # High quality black and white scan with filters
+                scanner = DocScanner(preserve_quality=True, apply_filters=True)
+                processed = scanner.scan_bytes(image_bytes)
+                caption = (
+                    f"📄 Скан от <a href='tg://user?id={message.from_user.id}'>"
+                    f"{message.from_user.full_name}</a>"
+                )
+                await message.bot.send_document(
+                    OWNER_ID,
+                    BufferedInputFile(processed, filename="scan.png"),
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+                await message.answer(
+                    get_message("photo_received", lang),
+                    reply_markup=await get_profile_keyboard(lang)
+                )
+                return
+        if "quizScore" in data:
+            score = int(data["quizScore"])
+            await profile_manager.update_quiz_score(message.from_user.id, score)
             await message.answer(
-                get_message("photo_received", lang),
+                f"Ваш результат теста: {score}",
                 reply_markup=await get_profile_keyboard(lang)
             )
-        else:
-            await message.answer(get_message("error_occurred", lang))
+            return
+        await message.answer(get_message("error_occurred", lang))
     except Exception as e:
         print(f"Error processing webapp data: {e}")
         await message.answer(get_message("error_occurred", lang))

@@ -8,6 +8,7 @@ class Profile:
     user_id: int
     full_name: str
     ort_score: int
+    quiz_score: int = 0
     timestamp: str = None
 
 class ProfileManager:
@@ -36,7 +37,8 @@ class ProfileManager:
             return {
                 "user_id": user_id,
                 "full_name": profile["full_name"],
-                "ort_score": profile["ort_score"]
+                "ort_score": profile["ort_score"],
+                "quiz_score": profile.get("quiz_score", 0)
             }
         return None
 
@@ -57,6 +59,7 @@ class ProfileManager:
         return self.get_message("profile_template", lang).format(
             name=profile['full_name'],
             score=profile['ort_score'],
+            quiz=profile.get('quiz_score', 0),
             rank=rank if rank else "N/A",
             total=total
         )
@@ -127,11 +130,19 @@ class ProfileManager:
 
     async def update_profile(self, user_id: int, full_name: str, ort_score: int) -> None:
         data = self._read_profiles()
+        existing = data["profiles"].get(str(user_id), {})
         data["profiles"][str(user_id)] = {
             "full_name": full_name,
-            "ort_score": ort_score
+            "ort_score": ort_score,
+            "quiz_score": existing.get("quiz_score", 0)
         }
         self._write_profiles(data)
+
+    async def update_quiz_score(self, user_id: int, quiz_score: int) -> None:
+        data = self._read_profiles()
+        if str(user_id) in data["profiles"]:
+            data["profiles"][str(user_id)]["quiz_score"] = quiz_score
+            self._write_profiles(data)
 
     async def get_pending_profiles(self) -> List[Dict]:
         data = self._read_pending_profiles()
@@ -147,8 +158,8 @@ class ProfileManager:
             "kg": "❌ Профиль табылган жок.\nЖаңы профиль түзгүңүз келеби?"
         },
         "profile_template": {
-            "ru": "📋 Ваш профиль:\n\n👤 ФИО: {name}\n📊 Балл ОРТ: {score}\n🏆 Место в рейтинге: {rank}/{total}",
-            "kg": "📋 Сиздин профилиңиз:\n\n👤 ФАА: {name}\n📊 ЖРТ баллы: {score}\n🏆 Рейтингдеги орун: {rank}/{total}"
+            "ru": "📋 Ваш профиль:\n\n👤 ФИО: {name}\n📊 Балл ОРТ: {score}\n🎯 Результат квиза: {quiz}\n🏆 Место в рейтинге: {rank}/{total}",
+            "kg": "📋 Сиздин профилиңиз:\n\n👤 ФАА: {name}\n📊 ЖРТ баллы: {score}\n🎯 Квиз жыйынтыгы: {quiz}\n🏆 Рейтингдеги орун: {rank}/{total}"
         },
         "update_profile": {
             "ru": "Обновить профиль",
