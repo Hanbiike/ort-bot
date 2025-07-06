@@ -34,10 +34,35 @@
             margin: 0 5px;
             cursor: pointer;
             user-select: none;
+            -webkit-tap-highlight-color: transparent; /* remove square highlight on mobile */
         }
         .option input:checked + span {
             background-color: #007BFF;
             color: white;
+        }
+        .option span:active {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        #submitBtn {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #submitBtn:active {
+            background-color: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
         }
     </style>
 </head>
