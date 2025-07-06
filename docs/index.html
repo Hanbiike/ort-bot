@@ -26,21 +26,26 @@
         /* сам круг-кнопка */
         .option {
             position: relative;
-            width: 40px;
-            height: 40px;
+            width: clamp(40px, 10vw, 60px);
+            height: clamp(40px, 10vw, 60px);
             margin: 0 5px;
-        
+
             display: inline-flex;
             align-items: center;
             justify-content: center;
-        
+
             border: 2px solid #007BFF;
             border-radius: 50%;
             cursor: pointer;
             user-select: none;
-        
+
             overflow: hidden;                         /* обрезаем системный прямоугольный highlight */
             -webkit-tap-highlight-color: transparent; /* убираем серый квадратик iOS/Android */
+            transition: transform 0.1s;
+        }
+
+        .option:active {
+            transform: scale(0.95);
         }
         
         /* внутренний слой заполняет весь круг */
@@ -50,12 +55,13 @@
             display: flex;                /* чтобы буква центрировалась */
             align-items: center;
             justify-content: center;
-        
+
             border-radius: 50%;           /* круглая заливка */
             color: #007BFF;               /* цвет текста по умолчанию */
             font-weight: bold;
-        
+
             pointer-events: none;         /* клики ловит родитель-label */
+            transition: background-color 0.2s, color 0.2s;
         }
         
         /* выбрано */
@@ -74,14 +80,17 @@
             background-color: #007BFF;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
             border-radius: 20px;
-            font-size: 16px;
+            font-size: clamp(16px, 4vw, 20px);
             cursor: pointer;
             margin-top: 10px;
+            transition: background-color 0.2s, transform 0.1s;
+            display: inline-block;
         }
         #submitBtn:active {
             background-color: #0056b3;
+            transform: scale(0.97);
         }
 
         #result {
