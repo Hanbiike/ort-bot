@@ -12,6 +12,26 @@
         .task {
             margin-bottom: 30px;
         }
+        .question-header {
+            display: flex;
+            width: 90%;
+            height: 30px;
+            margin-bottom: 20px;
+            font-family: sans-serif;
+        }
+        .question-number {
+            width: 60px;
+            background-color: #111;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .progress-bar {
+            flex-grow: 1;
+            background-color: #d5d6d8;
+        }
         img {
             max-width: 100%;
             height: auto;
@@ -118,9 +138,21 @@
         .then(data => {
             answers = data;
             const ids = Object.keys(data).sort((a,b)=>Number(a)-Number(b));
-            ids.forEach(id => {
+            ids.forEach((id, idx) => {
                 const div = document.createElement('div');
                 div.className = 'task';
+
+                const header = document.createElement('div');
+                header.className = 'question-header';
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'question-number';
+                numberDiv.textContent = idx + 1;
+                const progress = document.createElement('div');
+                progress.className = 'progress-bar';
+                header.appendChild(numberDiv);
+                header.appendChild(progress);
+                div.appendChild(header);
+
                 const img = document.createElement('img');
                 img.src = `img/${id}.png`;
                 div.appendChild(img);
