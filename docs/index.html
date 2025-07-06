@@ -4,10 +4,41 @@
     <meta charset="UTF-8">
     <title>Quiz</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .task { margin-bottom: 30px; }
-        img { max-width: 100%; height: auto; display: block; margin-bottom: 10px; }
-        label { margin-right: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        .task {
+            margin-bottom: 30px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+        }
+        .option input {
+            display: none;
+        }
+        .option span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #007BFF;
+            color: #007BFF;
+            font-weight: bold;
+            margin: 0 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .option input:checked + span {
+            background-color: #007BFF;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -33,12 +64,15 @@
                 div.appendChild(img);
                 ['a','b','c','d','e'].forEach(opt => {
                     const label = document.createElement('label');
+                    label.className = 'option';
                     const input = document.createElement('input');
                     input.type = 'radio';
                     input.name = `q${id}`;
                     input.value = opt;
+                    const span = document.createElement('span');
+                    span.textContent = opt.toUpperCase();
                     label.appendChild(input);
-                    label.append(` ${opt.toUpperCase()}`);
+                    label.appendChild(span);
                     div.appendChild(label);
                 });
                 quizContainer.appendChild(div);
