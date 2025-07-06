@@ -83,19 +83,23 @@
             font-size: 24px;
             
             pointer-events: none;         /* клики ловит родитель-label */
-            transition: background-color 0.2s, color 0.2s;
+            transition: background-color 0.1s, color 0.1s;
         }
         
         /* выбрано */
         .option input:checked + span {
             background-color: #007BFF;
             color: #ffffff;
+            transform: scale(1.07);
+            transform-origin: center;
         }
         
         /* момент нажатия */
         .option:active span {
             background-color: #007BFF;
             color: #ffffff;
+            transform: scale(1.07);
+            transform-origin: center;
         }
 
         #submitBtn {
