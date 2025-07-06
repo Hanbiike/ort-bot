@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .task { margin-bottom: 30px; }
+        img { max-width: 100%; height: auto; display: block; margin-bottom: 10px; }
+        label { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="quiz"></div>
+    <button id="submitBtn">Завершить</button>
+    <div id="result"></div>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+    const quizContainer = document.getElementById('quiz');
+    const resultDiv = document.getElementById('result');
+    let answers = {};
+
+    fetch('answers.json')
+        .then(r => r.json())
+        .then(data => {
+            answers = data;
+            const ids = Object.keys(data).sort((a,b)=>Number(a)-Number(b));
+            ids.forEach(id => {
+                const div = document.createElement('div');
+                div.className = 'task';
+                const img = document.createElement('img');
+                img.src = `img/${id}.png`;
+                div.appendChild(img);
+                ['a','b','c','d','e'].forEach(opt => {
+                    const label = document.createElement('label');
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = `q${id}`;
+                    input.value = opt;
+                    label.appendChild(input);
+                    label.append(` ${opt.toUpperCase()}`);
+                    div.appendChild(label);
+                });
+                quizContainer.appendChild(div);
+            });
+        });
+
+    document.getElementById('submitBtn').addEventListener('click', () => {
+        let score = 0;
+        for (const id in answers) {
+            const checked = document.querySelector(`input[name=q${id}]:checked`);
+            if (checked && checked.value === answers[id]) score++;
+        }
+        resultDiv.textContent = `Ваш результат: ${score}`;
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.sendData(JSON.stringify({quizScore: score}));
+        }
+    });
+    </script>
+</body>
+</html>
