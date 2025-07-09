@@ -181,10 +181,11 @@
         });
 
     document.getElementById('submitBtn').addEventListener('click', () => {
+        const map = {a: 'А', b: 'Б', c: 'В', d: 'Г', e: 'Д'};
         let score = 0;
         for (const id in answers) {
             const checked = document.querySelector(`input[name=q${id}]:checked`);
-            if (checked && checked.value === answers[id]) score++;
+            if (checked && map[checked.value] === answers[id]) score++;
         }
         resultDiv.textContent = `Ваш результат: ${score}`;
         if (window.Telegram && Telegram.WebApp) {
