@@ -417,9 +417,14 @@ async def handle_scan(message: types.Message):
                     reply_markup=await get_profile_keyboard(lang)
                 )
                 return
-        if "quizScore" in data:
-            score = int(data["quizScore"])
-            await profile_manager.update_quiz_score(message.from_user.id, score)
+        if all(k in data for k in ("topic", "test", "score")):
+            score = int(data["score"])
+            await profile_manager.update_test_score(
+                message.from_user.id,
+                data["topic"],
+                str(data["test"]),
+                score
+            )
             await message.answer(
                 f"Ваш результат теста: {score}",
                 reply_markup=await get_profile_keyboard(lang)

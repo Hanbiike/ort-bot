@@ -93,6 +93,16 @@
             transform: scale(1.07);
             transform-origin: center;
         }
+
+        .option.correct span {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+
+        .option.wrong span {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
         
         /* момент нажатия */
         .option:active span {
@@ -185,11 +195,29 @@
         let score = 0;
         for (const id in answers) {
             const checked = document.querySelector(`input[name=q${id}]:checked`);
-            if (checked && map[checked.value] === answers[id]) score++;
+            const correctLetter = answers[id];
+            const correctValue = Object.keys(map).find(k => map[k] === correctLetter);
+
+            document.querySelectorAll(`input[name=q${id}]`).forEach(inp => {
+                const label = inp.parentElement;
+                inp.disabled = true;
+                if (inp.value === correctValue) {
+                    label.classList.add('correct');
+                }
+                if (inp.checked && inp.value !== correctValue) {
+                    label.classList.add('wrong');
+                }
+            });
+
+            if (checked && map[checked.value] === correctLetter) score++;
         }
         resultDiv.textContent = `Ваш результат: ${score}`;
         if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.sendData(JSON.stringify({quizScore: score}));
+            Telegram.WebApp.sendData(JSON.stringify({
+                topic: 'arithmetic',
+                test: testNum,
+                score: score
+            }));
         }
     });
     </script>

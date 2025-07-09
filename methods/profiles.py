@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Optional, List, Tuple
 import datetime
 from methods.utils import read_json_file, write_json_file
@@ -8,7 +8,7 @@ class Profile:
     user_id: int
     full_name: str
     ort_score: int
-    quiz_score: int = 0
+    scores: Dict[str, Dict[str, int]] = field(default_factory=dict)
     timestamp: str = None
 
 class ProfileManager:
@@ -38,7 +38,7 @@ class ProfileManager:
                 "user_id": user_id,
                 "full_name": profile["full_name"],
                 "ort_score": profile["ort_score"],
-                "quiz_score": profile.get("quiz_score", 0)
+                "scores": profile.get("scores", {})
             }
         return None
 
@@ -56,10 +56,19 @@ class ProfileManager:
     async def format_profile(self, profile: Dict, rank: int, total: int, lang: str) -> str:
         if not profile:
             return self.get_message("profile_not_found", lang)
+
+        ari_scores = profile.get('scores', {}).get('arithmetic', {})
+        if ari_scores:
+            ari_text = ", ".join(
+                f"{k}:{v}" for k, v in sorted(ari_scores.items(), key=lambda x: int(x[0]))
+            )
+        else:
+            ari_text = "нет"
+
         return self.get_message("profile_template", lang).format(
             name=profile['full_name'],
             score=profile['ort_score'],
-            quiz=profile.get('quiz_score', 0),
+            arithmetic=ari_text,
             rank=rank if rank else "N/A",
             total=total
         )
@@ -134,14 +143,17 @@ class ProfileManager:
         data["profiles"][str(user_id)] = {
             "full_name": full_name,
             "ort_score": ort_score,
-            "quiz_score": existing.get("quiz_score", 0)
+            "scores": existing.get("scores", {})
         }
         self._write_profiles(data)
 
-    async def update_quiz_score(self, user_id: int, quiz_score: int) -> None:
+    async def update_test_score(self, user_id: int, topic: str, test_id: str, score: int) -> None:
         data = self._read_profiles()
         if str(user_id) in data["profiles"]:
-            data["profiles"][str(user_id)]["quiz_score"] = quiz_score
+            profile = data["profiles"][str(user_id)]
+            profile.setdefault("scores", {})
+            profile["scores"].setdefault(topic, {})
+            profile["scores"][topic][str(test_id)] = score
             self._write_profiles(data)
 
     async def get_pending_profiles(self) -> List[Dict]:
@@ -158,8 +170,8 @@ class ProfileManager:
             "kg": "❌ Профиль табылган жок.\nЖаңы профиль түзгүңүз келеби?"
         },
         "profile_template": {
-            "ru": "📋 Ваш профиль:\n\n👤 ФИО: {name}\n📊 Балл ОРТ: {score}\n🎯 Результат квиза: {quiz}\n🏆 Место в рейтинге: {rank}/{total}",
-            "kg": "📋 Сиздин профилиңиз:\n\n👤 ФАА: {name}\n📊 ЖРТ баллы: {score}\n🎯 Квиз жыйынтыгы: {quiz}\n🏆 Рейтингдеги орун: {rank}/{total}"
+            "ru": "📋 Ваш профиль:\n\n👤 ФИО: {name}\n📊 Балл ОРТ: {score}\n🎯 Арифметика: {arithmetic}\n🏆 Место в рейтинге: {rank}/{total}",
+            "kg": "📋 Сиздин профилиңиз:\n\n👤 ФАА: {name}\n📊 ЖРТ баллы: {score}\n🎯 Арыфметика: {arithmetic}\n🏆 Рейтингдеги орун: {rank}/{total}"
         },
         "update_profile": {
             "ru": "Обновить профиль",
