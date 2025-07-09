@@ -162,7 +162,8 @@
                 const img = document.createElement('img');
                 img.src = `img/${id}.png`;
                 div.appendChild(img);
-                ['a','b','c','d','e'].forEach(opt => {
+                const displayLetters = ['А','Б','В','Г','Д'];
+                ['a','b','c','d','e'].forEach((opt, idx) => {
                     const label = document.createElement('label');
                     label.className = 'option';
                     const input = document.createElement('input');
@@ -170,7 +171,7 @@
                     input.name = `q${id}`;
                     input.value = opt;
                     const span = document.createElement('span');
-                    span.textContent = opt.toUpperCase();
+                    span.textContent = displayLetters[idx];
                     label.appendChild(input);
                     label.appendChild(span);
                     div.appendChild(label);
