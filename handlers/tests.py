@@ -22,6 +22,6 @@ async def list_tests(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     for i in range(1, 11):
         builder.button(text=str(i), web_app=WebAppInfo(url=f"{QUIZ_WEBAPP_BASE_URL}?test={i}"))
-    builder.adjust(5)
+    builder.adjust(1)
     await callback.message.answer("Выберите тест:", reply_markup=builder.as_markup())
     await callback.answer()
