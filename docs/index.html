@@ -137,7 +137,7 @@
     let answers = {};
     const params = new URLSearchParams(window.location.search);
     const testNum = params.get('test') || '1';
-    const answersFile = `answers${testNum}.json`;
+    const answersFile = `img/arithmetics/test_${testNum}.json`;
 
     fetch(answersFile)
         .then(r => r.json())
@@ -160,7 +160,7 @@
                 div.appendChild(header);
 
                 const img = document.createElement('img');
-                img.src = `img/${id}.png`;
+                img.src = `img/arithmetics/${id}.png`;
                 div.appendChild(img);
                 const displayLetters = ['А','Б','В','Г','Д'];
                 ['a','b','c','d','e'].forEach((opt, idx) => {
