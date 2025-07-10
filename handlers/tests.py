@@ -1,33 +1,27 @@
 from aiogram import Router, F, types
-from aiogram.types import WebAppInfo
+from aiogram.types import WebAppInfo, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import QUIZ_WEBAPP_BASE_URL
 
 router = Router()
 
 TEST_BUTTONS = ["тесты", "тесттер"]
 
-@router.message(F.text.lower().in_(TEST_BUTTONS))
-async def list_tests(message: types.Message):
-    kb = [[types.KeyboardButton(text=f"Тест №{i}") for i in range(1,6)],
-          [types.KeyboardButton(text=f"Тест №{i}") for i in range(6,11)],
-          [types.KeyboardButton(text="Главное меню")]]
-    keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
-    await message.answer("Выберите тест:", reply_markup=keyboard)
 
-@router.message(F.text.regexp(r"^Тест №(\d+)$"))
-async def start_test(message: types.Message):
-    import re
-    match = re.search(r"^Тест №(\d+)$", message.text)
-    if not match:
-        return
-    num = int(match.group(1))
-    if not 1 <= num <= 10:
-        await message.answer("Неверный номер теста. Доступны тесты с 1 по 10.")
-        return
-    webapp_url = f"{QUIZ_WEBAPP_BASE_URL}?test={num}"
-    kb = types.ReplyKeyboardMarkup(
-        keyboard=[[types.KeyboardButton(text="Запустить", web_app=WebAppInfo(url=webapp_url))],
-                  [types.KeyboardButton(text="Главное меню")]],
-        resize_keyboard=True,
-    )
-    await message.answer(f"Тест №{num}", reply_markup=kb)
+@router.message(F.text.lower().in_(TEST_BUTTONS))
+async def choose_topic(message: types.Message):
+    """Prompt user to choose a test topic."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Арифметика", callback_data="topic_arithmetic"))
+    await message.answer("Выберите тему:", reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data == "topic_arithmetic")
+async def list_tests(callback: types.CallbackQuery):
+    """Show available tests for the selected topic."""
+    builder = InlineKeyboardBuilder()
+    for i in range(1, 17):
+        builder.button(text=str(i), web_app=WebAppInfo(url=f"{QUIZ_WEBAPP_BASE_URL}?test={i}"))
+    builder.adjust(1)
+    await callback.message.answer("Выберите тест:", reply_markup=builder.as_markup())
+    await callback.answer()

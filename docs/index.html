@@ -93,6 +93,16 @@
             transform: scale(1.07);
             transform-origin: center;
         }
+
+        .option.correct span {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+
+        .option.wrong span {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
         
         /* момент нажатия */
         .option:active span {
@@ -137,7 +147,7 @@
     let answers = {};
     const params = new URLSearchParams(window.location.search);
     const testNum = params.get('test') || '1';
-    const answersFile = `answers${testNum}.json`;
+    const answersFile = `img/arithmetics/test_${testNum}.json`;
 
     fetch(answersFile)
         .then(r => r.json())
@@ -160,9 +170,10 @@
                 div.appendChild(header);
 
                 const img = document.createElement('img');
-                img.src = `img/${id}.png`;
+                img.src = `img/arithmetics/${id}.png`;
                 div.appendChild(img);
-                ['a','b','c','d','e'].forEach(opt => {
+                const displayLetters = ['А','Б','В','Г','Д'];
+                ['a','b','c','d','e'].forEach((opt, idx) => {
                     const label = document.createElement('label');
                     label.className = 'option';
                     const input = document.createElement('input');
@@ -170,7 +181,7 @@
                     input.name = `q${id}`;
                     input.value = opt;
                     const span = document.createElement('span');
-                    span.textContent = opt.toUpperCase();
+                    span.textContent = displayLetters[idx];
                     label.appendChild(input);
                     label.appendChild(span);
                     div.appendChild(label);
@@ -180,14 +191,33 @@
         });
 
     document.getElementById('submitBtn').addEventListener('click', () => {
+        const map = {a: 'А', b: 'Б', c: 'В', d: 'Г', e: 'Д'};
         let score = 0;
         for (const id in answers) {
             const checked = document.querySelector(`input[name=q${id}]:checked`);
-            if (checked && checked.value === answers[id]) score++;
+            const correctLetter = answers[id];
+            const correctValue = Object.keys(map).find(k => map[k] === correctLetter);
+
+            document.querySelectorAll(`input[name=q${id}]`).forEach(inp => {
+                const label = inp.parentElement;
+                inp.disabled = true;
+                if (inp.value === correctValue) {
+                    label.classList.add('correct');
+                }
+                if (inp.checked && inp.value !== correctValue) {
+                    label.classList.add('wrong');
+                }
+            });
+
+            if (checked && map[checked.value] === correctLetter) score++;
         }
         resultDiv.textContent = `Ваш результат: ${score}`;
         if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.sendData(JSON.stringify({quizScore: score}));
+            Telegram.WebApp.sendData(JSON.stringify({
+                topic: 'arithmetic',
+                test: testNum,
+                score: score
+            }));
         }
     });
     </script>
