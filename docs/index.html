@@ -146,8 +146,9 @@
     const resultDiv = document.getElementById('result');
     let answers = {};
     const params = new URLSearchParams(window.location.search);
+    const topic = params.get('topic') || 'arithmetics';
     const testNum = params.get('test') || '1';
-    const answersFile = `img/arithmetics/test_${testNum}.json`;
+    const answersFile = `img/${topic}/test_${testNum}.json`;
 
     fetch(answersFile)
         .then(r => r.json())
@@ -170,7 +171,7 @@
                 div.appendChild(header);
 
                 const img = document.createElement('img');
-                img.src = `img/arithmetics/${id}.png`;
+                img.src = `img/${topic}/${id}.png`;
                 div.appendChild(img);
                 const displayLetters = ['А','Б','В','Г','Д'];
                 ['a','b','c','d','e'].forEach((opt, idx) => {
@@ -214,7 +215,7 @@
         resultDiv.textContent = `Ваш результат: ${score}`;
         if (window.Telegram && Telegram.WebApp) {
             Telegram.WebApp.sendData(JSON.stringify({
-                topic: 'arithmetic',
+                topic: topic,
                 test: testNum,
                 score: score
             }));
