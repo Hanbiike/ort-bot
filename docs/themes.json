@@ -1,3 +1,6 @@
 {
-    'arithmetics' : 'Арифметика',
+    "arithmetics": "Арифметика",
+    "percents": "Проценты",
+    "radicals": "Корни",
+    "powers": "Степени"
 }
