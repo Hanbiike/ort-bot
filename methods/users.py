@@ -133,8 +133,12 @@ async def moderate_message(message: types.Message, entities: list):
         user_id = message.from_user.id
         chat_id = message.chat.id
         
-        # Skip moderation for admins and bot
-        if await is_admin(user_id, chat_id) or user_id == bot.id or user_id == OWNER_ID:
+        # Skip moderation for admins, bot, owner, and Telegram service accounts
+        if (await is_admin(user_id, chat_id) or 
+            user_id == bot.id or 
+            user_id == OWNER_ID or
+            user_id in [777000, 1087968824] or  # Telegram and GroupAnonymousBot
+            message.from_user.is_bot):  # Skip all bots
             return
 
         # Check only for URLs in entities
