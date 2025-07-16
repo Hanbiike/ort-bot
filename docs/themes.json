@@ -1,10 +1,11 @@
 {
     "arithmetics": "Арифметика",
-    "percents": "Проценты",
+    "proportions": "Пропорции",
     "radicals": "Корни",
     "powers": "Степени",
     "unequals": "Неравенства",
     "statistics": "Статистика и вероятность",
     "operators": "Операторы",
-    "problems": "Задачи"
+    "problems": "Задачи",
+    "equations": "Уравнения"
 }
