@@ -1,0 +1,17 @@
+{
+    "themes": {
+        "arithmetics": "Арифметика",
+        "proportions": "Пропорции",
+        "radicals": "Корни",
+        "powers": "Степени",
+        "unequals": "Неравенства",
+        "statistics": "Статистика и вероятность",
+        "operators": "Операторы",
+        "problems": "Задачи",
+        "equations": "Уравнения"
+    },
+    "ceatm": {
+        "ceatm1": "ЦООМО 1",
+        "ceatm2": "ЦООМО 2"
+    }
+}
