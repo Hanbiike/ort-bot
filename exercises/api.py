@@ -133,19 +133,21 @@ def generate_task_images(
     for fmt in output_formats:
         if fmt not in config.SUPPORTED_OUTPUT_FORMATS:
             raise TaskGenerationError(f"Неподдерживаемый формат: {fmt}")
-    
+
     result = {
         "task_type": None,
         "task_data": None,
+        "task_meta": None,
         "files": {},
         "success": False
     }
-    
+
     try:
         # Initialize components
         api_client = TaskAPIClient(api_key)
         task = api_client.generator.generate_random_task()
         result["task_type"] = task["тип_задачи"]
+        result["task_meta"] = task
         
         if task["тип_задачи"] == "COMPARISON":
             result.update(_generate_comparison_task(api_client, task, output_formats, dpi))
