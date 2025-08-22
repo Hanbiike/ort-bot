@@ -5,13 +5,13 @@ This module handles the generation of mathematical tasks using OpenAI's API
 and converts them to both PDF and PNG formats for the ORT broadcaster system.
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 from openai import OpenAI
 from pydantic import BaseModel
 import config
-from random_task_generator import TaskGenerator, TaskGeneratorError
-from latex import compile_latex, compile_latex_to_png, create_full_latex_document, LaTeXCompilationError
-from pdf_converter import convert_pdf_single_image, PDFConversionError
+from exercises.random_task_generator import TaskGenerator, TaskGeneratorError
+from exercises.latex import compile_latex, compile_latex_to_png, create_full_latex_document, LaTeXCompilationError
+from exercises.pdf_converter import convert_pdf_single_image, PDFConversionError
 
 
 class TaskGenerationError(Exception):
@@ -21,10 +21,10 @@ class TaskGenerationError(Exception):
 
 class Comparison(BaseModel):
     """Model for comparison tasks between two quantities."""
-    question: str
+    question: Optional[str]
     column_A: str
     column_B: str
-    correct_answer: str
+    correct_answer: Literal["А", "Б", "В", "Г"]
 
 
 class ABCDE(BaseModel):
@@ -35,13 +35,13 @@ class ABCDE(BaseModel):
     answer_C: str
     answer_D: str
     answer_E: str
-    correct_answer: str
+    correct_answer: Literal["А", "Б", "В", "Г", "Д"]
 
 
 class TaskAPIClient:
     """Client for OpenAI API task generation."""
-    
-    def __init__(self, api_key: str):
+
+    def __init__(self, subject: str, api_key: str):
         """
         Initialize the API client.
         
@@ -49,7 +49,7 @@ class TaskAPIClient:
             api_key (str): OpenAI API key
         """
         self.client = OpenAI(api_key=api_key)
-        self.generator = TaskGenerator()
+        self.generator = TaskGenerator(subject=subject)
     
     def generate_comparison_task(self, task: Dict[str, Any]) -> Comparison:
         """
@@ -67,11 +67,11 @@ class TaskAPIClient:
         try:
             response = self.client.responses.parse(
                 model=config.OPENAI_MODEL,
-                instructions="""Создай задачу, содержащую две величины, которые нужно сравнить.
-                Варианты ответа: >, <, =, недостаточно данных
-                Формулы пиши в LaTeX и оборачивай в $...$ в дробях кроме степеней всегда используй \dfrac{}{}.""",
-                input=self.generator.get_text(task),
-                text_format=Comparison
+                instructions=task["instruction"],
+                input=task["prompt"],
+                text_format=Comparison,
+                top_p=0.9
+                #temperature=2
             )
             return response.output_parsed
             
@@ -94,10 +94,11 @@ class TaskAPIClient:
         try:
             response = self.client.responses.parse(
                 model=config.OPENAI_MODEL,
-                instructions="""Создай задачу с 5 вариантами ответа.
-                Формулы пиши в LaTeX и оборачивай в $...$ в дробях кроме степеней всегда используй \dfrac{}{}.""",
-                input=self.generator.get_text(task),
-                text_format=ABCDE
+                instructions=task["instruction"],
+                input=task["prompt"],
+                text_format=ABCDE,
+                top_p=0.9
+                #temperature=2
             )
             return response.output_parsed
             
@@ -106,6 +107,7 @@ class TaskAPIClient:
 
 
 def generate_task_images(
+    subject: str,
     api_key: str,
     output_formats: List[str] = None,
     dpi: int = None
@@ -138,23 +140,25 @@ def generate_task_images(
         "task_type": None,
         "task_data": None,
         "task_meta": None,
+        "task_topic": None,
         "files": {},
         "success": False
     }
 
     try:
         # Initialize components
-        api_client = TaskAPIClient(api_key)
+        api_client = TaskAPIClient(subject=subject, api_key=api_key)
         task = api_client.generator.generate_random_task()
-        result["task_type"] = task["тип_задачи"]
-        result["task_meta"] = task
-        
-        if task["тип_задачи"] == "COMPARISON":
+        result["task_type"] = task["type"]
+        result["task_meta"] = task["caption"]
+        result["task_topic"] = task["topic"]
+
+        if task["type"] == "COMPARISON":
             result.update(_generate_comparison_task(api_client, task, output_formats, dpi))
-        elif task["тип_задачи"] == "ABCDE":
+        elif task["type"] == "ABCDE":
             result.update(_generate_abcde_task(api_client, task, output_formats, dpi))
         else:
-            raise TaskGenerationError(f"Неподдерживаемый тип задачи: {task['тип_задачи']}")
+            raise TaskGenerationError(f"Неподдерживаемый тип задачи: {task['type']}")
             
     except (TaskGeneratorError, TaskGenerationError, LaTeXCompilationError) as e:
         result["error"] = str(e)
@@ -199,7 +203,8 @@ def _generate_comparison_task(
         "task_data": parsed_data.model_dump(),
         "files": files,
         "success": bool(files),
-        "latex_content": latex_content
+        "latex_content": latex_content,
+        "right_answer": parsed_data.correct_answer
     }
 
 
@@ -238,7 +243,8 @@ def _generate_abcde_task(
         "task_data": parsed_data.model_dump(),
         "files": files,
         "success": bool(files),
-        "latex_content": latex_content
+        "latex_content": latex_content,
+        "right_answer": parsed_data.correct_answer
     }
 
 

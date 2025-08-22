@@ -1521,7 +1521,7 @@
     },
     "5928423585": {
         "user_id": 5928423585,
-        "lang": "ru",
+        "lang": "kg",
         "sub": 0,
         "expire_date": null
     },
@@ -79780,6 +79780,42 @@
     "843634023": {
         "user_id": 843634023,
         "lang": "ru",
+        "sub": 0,
+        "expire_date": null
+    },
+    "1165484330": {
+        "user_id": 1165484330,
+        "lang": "ru",
+        "sub": 0,
+        "expire_date": null
+    },
+    "1444663678": {
+        "user_id": 1444663678,
+        "lang": "kg",
+        "sub": 0,
+        "expire_date": null
+    },
+    "5772929280": {
+        "user_id": 5772929280,
+        "lang": "ru",
+        "sub": 0,
+        "expire_date": null
+    },
+    "5379656800": {
+        "user_id": 5379656800,
+        "lang": "ru",
+        "sub": 0,
+        "expire_date": null
+    },
+    "5639800264": {
+        "user_id": 5639800264,
+        "lang": "kg",
+        "sub": 0,
+        "expire_date": null
+    },
+    "5420702341": {
+        "user_id": 5420702341,
+        "lang": "kg",
         "sub": 0,
         "expire_date": null
     }
