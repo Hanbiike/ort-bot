@@ -193,8 +193,8 @@ async def _generate_comparison_task(
     """
     # Generate task content
     parsed_data = await api_client.generate_comparison_task(task)
-    latex_content = rf"\comparison[{parsed_data.question}]{{{parsed_data.column_A}}}{{{parsed_data.column_B}}}"
-    
+    latex_content = rf"\comparison[{parsed_data.question if parsed_data.question else ''}]{{{parsed_data.column_A}}}{{{parsed_data.column_B}}}"
+
     # Create full document
     full_document = create_full_latex_document(subject=subject, content=latex_content, task_type="COMPARISON")
 
