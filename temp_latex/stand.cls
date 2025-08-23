@@ -10,8 +10,9 @@
 \LoadClass[border=5mm,varwidth=90mm, multi=page, crop]{standalone}
 
 % Остальные пакеты, как в вашем ort.cls
-\RequirePackage[OT2, T2A, T1]{fontenc}
+\RequirePackage[OT2, T1, T2A]{fontenc}
 \RequirePackage[russian]{babel}
+\RequirePackage[utf8]{inputenc}
 \RequirePackage{amsmath, amssymb, graphicx, array, multicol, tikz, pgfplots, mathrsfs, colortbl, array, tikz-3dplot, pgf-pie}
 \pgfplotsset{compat=1.18}
 \usepgfplotslibrary{polar}

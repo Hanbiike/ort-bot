@@ -6,7 +6,7 @@ and converts them to both PDF and PNG formats for the ORT broadcaster system.
 """
 
 from typing import Optional, Dict, Any, List, Literal
-from openai import AsyncOpenAI
+from openai import AsyncAzureOpenAI
 from pydantic import BaseModel
 import config
 from exercises.random_task_generator import TaskGenerator, TaskGeneratorError
@@ -48,7 +48,7 @@ class TaskAPIClient:
         Args:
             api_key (str): OpenAI API key
         """
-        self.client = AsyncOpenAI(api_key=api_key)
+        self.client = AsyncAzureOpenAI(azure_deployment=config.AZURE_DEPLOYMENT, api_version=config.AZURE_API_VERSION, azure_endpoint=config.AZURE_ENDPOINT, api_key=api_key)
         self.generator = TaskGenerator(subject=subject)
     
     async def generate_comparison_task(self, task: Dict[str, Any]) -> Comparison:
@@ -66,7 +66,7 @@ class TaskAPIClient:
         """
         try:
             response = await self.client.responses.parse(
-                model=config.OPENAI_MODEL,
+                model=config.AZURE_DEPLOYMENT,
                 instructions=task["instruction"],
                 input=task["prompt"],
                 text_format=Comparison,
@@ -93,7 +93,7 @@ class TaskAPIClient:
         """
         try:
             response = await self.client.responses.parse(
-                model=config.OPENAI_MODEL,
+                model=config.AZURE_DEPLOYMENT,
                 instructions=task["instruction"],
                 input=task["prompt"],
                 text_format=ABCDE,
@@ -308,7 +308,7 @@ async def _generate_output_files(
 # Main execution
 if __name__ == "__main__":
     # Example usage with API key from environment or config
-    api_key = config.OPENAI_API_KEY
+    api_key = config.AZURE_OPENAI_API_KEY
     try:
         # Generate task in both PDF and PNG formats
         result = generate_task_images(

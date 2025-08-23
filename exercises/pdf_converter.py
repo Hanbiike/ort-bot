@@ -10,6 +10,7 @@ from pathlib import Path
 import os
 import subprocess
 import sys
+import asyncio
 
 try:
     from pdf2image import convert_from_path
@@ -57,7 +58,7 @@ def install_pdf2image() -> bool:
         return False
 
 
-def convert_pdf_to_png(
+async def convert_pdf_to_png(
     pdf_path: str, 
     output_dir: Optional[str] = None,
     dpi: int = 500,
@@ -102,23 +103,25 @@ def convert_pdf_to_png(
         output_dir.mkdir(parents=True, exist_ok=True)
     
     try:
-        # Convert PDF to images
-        if page_numbers:
-            # Convert specific pages (pdf2image uses 1-based indexing)
-            images = convert_from_path(
+        # Run conversion in executor to avoid blocking
+        loop = asyncio.get_event_loop()
+        images = await loop.run_in_executor(
+            None,
+            lambda: convert_from_path(pdf_path, dpi=dpi) if not page_numbers
+            else convert_from_path(
                 pdf_path, 
                 dpi=dpi, 
                 first_page=min(page_numbers),
                 last_page=max(page_numbers)
             )
-            # Filter to requested pages
+        )
+        
+        # Filter to requested pages if needed
+        if page_numbers and len(images) > 1:
             images = [
-                img for i, img in enumerate(images, start=min(page_numbers))
+                img for i, img in enumerate(images, start=min(page_numbers) if page_numbers else 1)
                 if i in page_numbers
             ]
-        else:
-            # Convert all pages
-            images = convert_from_path(pdf_path, dpi=dpi)
         
         # Save images as PNG files
         output_files = []
@@ -133,8 +136,11 @@ def convert_pdf_to_png(
             output_filename = f"{base_name}_page_{page_num:03d}.png"
             output_path = output_dir / output_filename
             
-            # Save with high quality
-            image.save(output_path, output_format, optimize=True, quality=95)
+            # Save with high quality in executor
+            await loop.run_in_executor(
+                None,
+                lambda: image.save(output_path, output_format, optimize=True, quality=95)
+            )
             output_files.append(str(output_path))
             
         print(f"✅ Конвертировано {len(images)} страниц в PNG")
@@ -144,7 +150,7 @@ def convert_pdf_to_png(
         raise PDFConversionError(f"Ошибка конвертации: {e}")
 
 
-def validate_pdf_file(pdf_path: str) -> bool:
+async def validate_pdf_file(pdf_path: str) -> bool:
     """
     Validate if PDF file is readable and not corrupted.
     
@@ -164,12 +170,16 @@ def validate_pdf_file(pdf_path: str) -> bool:
             print(f"⚠️ PDF файл слишком мал: {pdf_file.stat().st_size} байт")
             return False
             
-        # Try to read PDF header
-        with open(pdf_path, 'rb') as f:
-            header = f.read(8)
-            if not header.startswith(b'%PDF-'):
-                print("⚠️ PDF файл не имеет корректного заголовка")
-                return False
+        # Try to read PDF header asynchronously
+        loop = asyncio.get_event_loop()
+        header = await loop.run_in_executor(
+            None,
+            lambda: open(pdf_path, 'rb').read(8)
+        )
+        
+        if not header.startswith(b'%PDF-'):
+            print("⚠️ PDF файл не имеет корректного заголовка")
+            return False
                 
         return True
         
@@ -178,7 +188,7 @@ def validate_pdf_file(pdf_path: str) -> bool:
         return False
 
 
-def convert_pdf_single_image(
+async def convert_pdf_single_image(
     pdf_path: str,
     output_path: Optional[str] = None,
     dpi: int = None,
@@ -212,7 +222,7 @@ def convert_pdf_single_image(
         raise FileNotFoundError(f"PDF файл не найден: {pdf_path}")
     
     # Validate PDF file before conversion
-    if not validate_pdf_file(pdf_path):
+    if not await validate_pdf_file(pdf_path):
         raise PDFConversionError(f"PDF файл поврежден или некорректен: {pdf_path}")
     
     # Set default output path
@@ -222,12 +232,17 @@ def convert_pdf_single_image(
     try:
         # Add timeout and error handling for pdf2image
         print(f"🔄 Конвертирую PDF в PNG (DPI: {dpi})...")
-        images = convert_from_path(
-            pdf_path, 
-            dpi=dpi,
-            fmt='png',
-            thread_count=1,  # Use single thread for stability
-            timeout=30       # 30 second timeout
+        
+        loop = asyncio.get_event_loop()
+        images = await loop.run_in_executor(
+            None,
+            lambda: convert_from_path(
+                pdf_path, 
+                dpi=dpi,
+                fmt='png',
+                thread_count=1,  # Use single thread for stability
+                timeout=30       # 30 second timeout
+            )
         )
         
         if not images:
@@ -235,7 +250,10 @@ def convert_pdf_single_image(
         
         if len(images) == 1 or not combine_pages:
             # Save first page only
-            images[0].save(output_path, 'PNG', optimize=config.PNG_OPTIMIZE, quality=config.PNG_QUALITY)
+            await loop.run_in_executor(
+                None,
+                lambda: images[0].save(output_path, 'PNG', optimize=config.PNG_OPTIMIZE, quality=config.PNG_QUALITY)
+            )
             
         else:
             # Combine multiple pages vertically
@@ -251,7 +269,10 @@ def convert_pdf_single_image(
                 combined_image.paste(img, (x_offset, y_offset))
                 y_offset += img.height
             
-            combined_image.save(output_path, 'PNG', optimize=config.PNG_OPTIMIZE, quality=config.PNG_QUALITY)
+            await loop.run_in_executor(
+                None,
+                lambda: combined_image.save(output_path, 'PNG', optimize=config.PNG_OPTIMIZE, quality=config.PNG_QUALITY)
+            )
         
         print(f"✅ PDF конвертирован в PNG: {output_path}")
         return str(output_path)
@@ -264,7 +285,7 @@ def convert_pdf_single_image(
         raise PDFConversionError(error_msg)
 
 
-def get_pdf_info(pdf_path: str) -> Dict[str, Any]:
+async def get_pdf_info(pdf_path: str) -> Dict[str, Any]:
     """
     Get information about PDF file.
     
@@ -278,7 +299,11 @@ def get_pdf_info(pdf_path: str) -> Dict[str, Any]:
         return {"error": "pdf2image не установлен"}
     
     try:
-        images = convert_from_path(pdf_path, dpi=72)  # Low DPI for info only
+        loop = asyncio.get_event_loop()
+        images = await loop.run_in_executor(
+            None,
+            lambda: convert_from_path(pdf_path, dpi=72)  # Low DPI for info only
+        )
         return {
             "page_count": len(images),
             "file_size": os.path.getsize(pdf_path),

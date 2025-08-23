@@ -31,7 +31,10 @@ async def menu_ru(message: types.Message):
         url="https://t.me/han_ort_eng")
     )
     builder.row(types.InlineKeyboardButton(
-        text="Химия & Биология", url="https://t.me/han_ort_himbio")
+        text="Химия", url="https://t.me/han_ort_himbio")
+    )
+    builder.row(types.InlineKeyboardButton(
+        text="Биология", url="https://t.me/+wSH95Svv4N9hZWZi")
     )
     builder.row(types.InlineKeyboardButton(
         text="CLOUD - RU", url="https://t.me/han_ort_cloud")
@@ -86,14 +89,17 @@ async def menu_kg(message: types.Message):
         text="Русская грамматика", url="https://t.me/han_ort_rus")
     )
     builder.row(types.InlineKeyboardButton(
-        text="Кыргыз грамматкасы", url="https://t.me/han_ort_kg")
+        text="Кыргыз грамматикасы", url="https://t.me/han_ort_kg")
     )
     builder.row(types.InlineKeyboardButton(
         text="English",
         url="https://t.me/han_ort_eng")
     )
     builder.row(types.InlineKeyboardButton(
-        text="Химия & Биология", url="https://t.me/han_ort_himbio")
+        text="Химия", url="https://t.me/han_ort_himbio")
+    )
+    builder.row(types.InlineKeyboardButton(
+        text="Биология", url="https://t.me/+wSH95Svv4N9hZWZi")
     )
     builder.row(types.InlineKeyboardButton(
         text="CLOUD - RU", url="https://t.me/han_ort_cloud")
