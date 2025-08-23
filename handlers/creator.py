@@ -92,6 +92,7 @@ async def _send_task(bot: Bot, subject: str) -> None:
     task_data = result.get("task_data", {})
     topic_name = result.get("task_topic")  # имя темы из result
     latex_content = result.get("latex_content", "")  # LaTeX контент задачи
+    right_answer = task_data.get("correct_answer", "")
 
     # 📌 получаем thread_id
     thread_id = await _get_or_create_thread(bot, subject, topic_name)
@@ -110,7 +111,7 @@ async def _send_task(bot: Bot, subject: str) -> None:
     # Собираем caption для логов: latex_content + основной caption (если есть)
 
     log_caption = (
-        f"<pre>{latex_content}</pre>\n{caption}"
+        f"<pre>{latex_content}</pre>\n{caption}\nПравильный ответ: {right_answer}"
     ) if (latex_content or caption) else ""
     if len(log_caption) > 1000:
         await bot.send_photo(
