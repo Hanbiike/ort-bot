@@ -102,7 +102,7 @@ async def _send_task(bot: Bot, subject: str) -> None:
         chat_id=config.SUBJECT_GROUPS[subject],
         message_thread_id=thread_id,
         photo=photo,
-        caption=caption
+        caption=caption if len(caption) <= 1024 else caption[:1000] + "...",
     )
 
     # 📌 отправляем тот же файл в LOGGING_GROUP в теме, соответствующей предмету
