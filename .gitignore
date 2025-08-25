@@ -114,6 +114,8 @@ cython_debug/
 Thumbs.db
 
 # Local data files that may change and should not be tracked
+temp_latex/
+threads/
 groups.txt
 profiles.json
 pending_profiles.json
