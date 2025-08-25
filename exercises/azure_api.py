@@ -193,7 +193,12 @@ async def _generate_comparison_task(
     """
     # Generate task content
     parsed_data = await api_client.generate_comparison_task(task)
-    latex_content = rf"\comparison[{parsed_data.question if parsed_data.question else ''}]{{{parsed_data.column_A}}}{{{parsed_data.column_B}}}"
+    if len(parsed_data.column_A) > 80 or len(parsed_data.column_B) > 80:
+        latex_content = rf"\comparisonBIIG[{parsed_data.question if parsed_data.question else ''}]{{{parsed_data.column_A}}}{{{parsed_data.column_B}}}"
+    elif len(parsed_data.column_A) > 40 or len(parsed_data.column_B) > 40:
+        latex_content = rf"\comparisonBIG[{parsed_data.question if parsed_data.question else ''}]{{{parsed_data.column_A}}}{{{parsed_data.column_B}}}"
+    else:
+        latex_content = rf"\comparison[{parsed_data.question if parsed_data.question else ''}]{{{parsed_data.column_A}}}{{{parsed_data.column_B}}}"
 
     # Create full document
     full_document = create_full_latex_document(subject=subject, content=latex_content, task_type="COMPARISON")
