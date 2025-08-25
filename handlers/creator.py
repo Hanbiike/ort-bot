@@ -94,7 +94,7 @@ async def _send_task(bot: Bot, subject: str) -> None:
 
             # 📌 достаём данные задачи
             meta = result.get("task_meta", {})
-            caption = meta
+            caption = meta if subject != "Аналогии" else ""
             task_type = result.get("task_type")
             task_data = result.get("task_data", {})
             topic_name = result.get("task_topic")  # имя темы из result
@@ -102,7 +102,7 @@ async def _send_task(bot: Bot, subject: str) -> None:
             right_answer = task_data.get("correct_answer", "")
 
             # 📌 получаем thread_id
-            thread_id = await _get_or_create_thread(bot, subject, topic_name)
+            thread_id = await _get_or_create_thread(bot, subject, topic_name) if subject != "Аналогии" else None
 
             # 📌 отправляем картинку (создаём FSInputFile заново на каждой итерации)
             photo = FSInputFile(result["files"]["png"])
@@ -163,7 +163,7 @@ async def _send_task(bot: Bot, subject: str) -> None:
                 options=options,
                 type="quiz",
                 correct_option_id=correct,
-                is_anonymous=False,
+                is_anonymous=True,
             )
 
             # Успех — выходим из функции
