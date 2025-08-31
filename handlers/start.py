@@ -109,7 +109,7 @@ async def check_subscription(callback: types.CallbackQuery):
                 await menu.menu_kg(callback.message)
 
         else:
-            text = "Пожалуйста, подпишитесь на наш каналы, чтобы продолжить." if lang == "ru" else "Улантууну улантуу үчүн каналдарыбызга жазылыңыз."
+            text = "Пожалуйста, подпишитесь на наши каналы, чтобы продолжить." if lang == "ru" else "Улантуу үчүн каналдарыбызга жазылыңыз."
             await callback.answer(text=text, show_alert=True)
 
     except Exception as e:
