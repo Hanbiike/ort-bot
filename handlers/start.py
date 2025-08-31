@@ -4,7 +4,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import Chat
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from methods.users import update_user_lang, user_lang
+from methods.users import update_user_lang, user_lang, user_data
 from methods.admins import is_admin
 from keyboards import menu
 from config import HAN_ID, CHANNEL_ID, BOT_TOKEN
@@ -52,6 +52,8 @@ async def cmd_start(message: types.Message):
         "Салам! Мен сизге ЖРТга даярданууга жардам берем. ЖРТны тапшыра турган тилди тандаңыз?",
         reply_markup=keyboard
     )
+
+    await user_data(message.from_user.id)
 
 @router.message(F.text.casefold() == "русский язык")
 async def lang_ru(message: types.Message):
@@ -105,6 +107,10 @@ async def check_subscription(callback: types.CallbackQuery):
                 await menu.menu_ru(callback.message)
             elif lang == "kg":
                 await menu.menu_kg(callback.message)
-                
+
+        else:
+            text = "Пожалуйста, подпишитесь на наш каналы, чтобы продолжить." if lang == "ru" else "Улантууну улантуу үчүн каналдарыбызга жазылыңыз."
+            await callback.answer(text=text, show_alert=True)
+
     except Exception as e:
         print(f"An error occurred: {e}")
