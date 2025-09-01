@@ -1,5 +1,6 @@
 import os, uuid
 import logging
+import aiohttp
 from aiogram import Router, F, types, Bot
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
@@ -65,7 +66,7 @@ TEMP_DIR = Path("temp_videos")
 
 @router.message(TikTokUploadStates.waiting_for_video, F.document)
 async def handle_video_document(message: types.Message, state: FSMContext):
-    """Обработчик получения видео файла как документа"""
+    """Обработчик получения видео файла как документа (скачивание через aiohttp)"""
     try:
         # 1) Проверка приватности и авторства
         if message.chat.type != "private" or message.from_user.id != HAN_ID:
@@ -99,36 +100,60 @@ async def handle_video_document(message: types.Message, state: FSMContext):
 
         # 4) Подготовка путей
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
-        # Аккуратно получаем расширение
         original_name = document.file_name or ""
         ext = (original_name.rsplit(".", 1)[-1] if "." in original_name else "").lower()
         if ext not in ALLOWED_EXTS:
-            # если расширения нет или оно экзотическое — подставим mp4
-            ext = "mp4"
+            ext = "mp4"  # безопасное дефолтное расширение
 
         unique = uuid.uuid4().hex[:10]
-        # Делаем имя уникальным и не зависящим от исходного
-        file_path = TEMP_DIR / f"video_{message.from_user.id}_{unique}.{ext}"
+        file_path: Path = TEMP_DIR / f"video_{message.from_user.id}_{unique}.{ext}"
 
-        # 5) Скачивание (aiogram v3)
-        # Можно скачать либо по file_id напрямую, либо через get_file
+        # 5) Скачивание через aiohttp
         bot = message.bot
-        # Вариант А: напрямую по file_id:
-        await bot.download(document.file_id, destination=file_path)
-        # Вариант Б (эквивалентно):
-        # file = await bot.get_file(document.file_id)
-        # await bot.download(file, destination=file_path)
+        # 5.1 Получаем file_path у Telegram
+        tg_file = await bot.get_file(document.file_id)
+        tg_file_path = tg_file.file_path  # типа "documents/file_1234.mp4"
+
+        # 5.2 Формируем URL для скачивания
+        # В aiogram v3 токен доступен как bot.token
+        download_url = f"https://api.telegram.org/file/bot{bot.token}/{tg_file_path}"
+
+        # 5.3 Качаем потоково
+        timeout = aiohttp.ClientTimeout(total=60 * 10)  # до 10 минут на весь файл
+        bytes_written = 0
+        CHUNK = 1024 * 128  # 128 KiB
+
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(download_url) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"Ошибка скачивания {resp.status}: {text[:200]}")
+
+                with open(file_path, "wb") as f:
+                    async for chunk in resp.content.iter_chunked(CHUNK):
+                        if not chunk:
+                            continue
+                        f.write(chunk)
+                        bytes_written += len(chunk)
+                        # Доп. защита: если известен исходный размер и внезапно переполнили лимит
+                        if MAX_SIZE_BYTES and bytes_written > MAX_SIZE_BYTES:
+                            raise RuntimeError(
+                                "Размер скачиваемого файла превысил допустимый лимит."
+                            )
+
+        if bytes_written == 0 or not file_path.exists():
+            raise RuntimeError("Файл не был скачан или пуст.")
 
         # 6) Сохраняем метаданные
         video_data[message.from_user.id] = {
             "file_path": str(file_path),
             "file_name": original_name or file_path.name,
-            "file_size": file_size,
+            "file_size": file_size or bytes_written,
             "mime_type": mime,
         }
 
         # 7) Ответ пользователю и переключение стейта
-        size_mb = (file_size // (1024 * 1024)) if file_size else "неизв."
+        size_mb = ((file_size or bytes_written) // (1024 * 1024)) or "неизв."
         await message.answer(
             "✅ Видео получено!\n\n"
             f"📁 Файл: {video_data[message.from_user.id]['file_name']}\n"
@@ -139,6 +164,13 @@ async def handle_video_document(message: types.Message, state: FSMContext):
 
     except Exception as e:
         logger.exception("Ошибка при загрузке видео")
+        # Если файл частично успел скачаться — можно попробовать удалить
+        try:
+            if 'file_path' in locals() and file_path and file_path.exists():
+                file_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
         await message.answer(
             "❌ Произошла ошибка при загрузке видео. Попробуйте ещё раз или обратитесь к разработчику."
         )
