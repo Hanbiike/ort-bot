@@ -48,9 +48,9 @@ async def main():
         profiles.router,
         tests.router,
         #parser.router,
-        #file_id.router,
+        file_id.router,
         creator.router,
-        tiktok.router
+        #tiktok.router
     )
     
     # Start background tasks
