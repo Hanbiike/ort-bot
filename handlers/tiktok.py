@@ -8,7 +8,6 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import BOT_TOKEN, TIKTOK_SESSION_ID, HAN_ID
-from methods.admins import is_admin
 from TikTokUploader.uploader import uploadVideo
 
 router = Router()
