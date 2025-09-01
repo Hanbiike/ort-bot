@@ -1,4 +1,4 @@
-import os
+import os, uuid
 import logging
 from aiogram import Router, F, types, Bot
 from aiogram.filters.command import Command
@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from pathlib import Path
 
 from config import BOT_TOKEN, TIKTOK_SESSION_ID, HAN_ID
 from TikTokUploader.uploader import uploadVideo
@@ -58,69 +59,88 @@ async def cmd_tiktok(message: types.Message, state: FSMContext):
     )
     await state.set_state(TikTokUploadStates.waiting_for_video)
 
+ALLOWED_EXTS = {"mp4", "mov", "avi", "wmv", "mkv"}
+MAX_SIZE_BYTES = 100 * 1024 * 1024  # 100 МБ
+TEMP_DIR = Path("temp_videos")
+
 @router.message(TikTokUploadStates.waiting_for_video, F.document)
 async def handle_video_document(message: types.Message, state: FSMContext):
-    """Обработчик получения видео файла"""
-    # Проверяем, что это личные сообщения от HAN
-    if message.chat.type != "private" or message.from_user.id != HAN_ID:
-        await message.answer("❌ У вас нет прав для использования этой функции.")
-        await state.clear()
-        return
-    
-    document = message.document
-    
-    # Проверяем, что это видео файл
-    if not document.mime_type or not document.mime_type.startswith('video/'):
-        await message.answer(
-            "❌ Пожалуйста, отправьте видео файл.\n\n"
-            "Поддерживаемые форматы: MP4, AVI, MOV, WMV и другие."
-        )
-        return
-    
-    # Проверяем размер файла (максимум 100 МБ)
-    max_size = 100 * 1024 * 1024  # 100 МБ
-    if document.file_size > max_size:
-        await message.answer(
-            f"❌ Размер файла слишком большой ({document.file_size // (1024*1024)} МБ).\n\n"
-            f"Максимальный размер: {max_size // (1024*1024)} МБ"
-        )
-        return
-    
+    """Обработчик получения видео файла как документа"""
     try:
-        # Получаем файл
-        file = await bot.get_file(document.file_id)
-        print("Файл загружен")
-        # Создаем папку для временных файлов
-        temp_dir = "temp_videos"
-        os.makedirs(temp_dir, exist_ok=True)
-        print("Папка для временных файлов создана")
-        # Формируем путь к файлу
-        file_extension = document.file_name.split('.')[-1] if '.' in document.file_name else 'mp4'
-        file_path = os.path.join(temp_dir, f"video_{message.from_user.id}.{file_extension}")
-        print(f"Путь к файлу: {file_path}")
-        # Скачиваем файл
-        await bot.download_file(file.file_path, file_path)
-        print("Файл загружен")
-        # Сохраняем данные о видео
+        # 1) Проверка приватности и авторства
+        if message.chat.type != "private" or message.from_user.id != HAN_ID:
+            await message.answer("❌ У вас нет прав для использования этой функции.")
+            await state.clear()
+            return
+
+        document = message.document
+        if document is None:
+            await message.answer("❌ Не удалось прочитать вложение как документ.")
+            return
+
+        # 2) MIME: видео?
+        mime = (document.mime_type or "").lower()
+        if not mime.startswith("video/"):
+            await message.answer(
+                "❌ Пожалуйста, отправьте видео файл.\n\n"
+                "Поддерживаемые форматы: MP4, AVI, MOV, WMV и другие."
+            )
+            return
+
+        # 3) Размер (если известен)
+        file_size = document.file_size or 0
+        if file_size and file_size > MAX_SIZE_BYTES:
+            mb = file_size // (1024 * 1024)
+            await message.answer(
+                f"❌ Размер файла слишком большой ({mb} МБ).\n\n"
+                f"Максимальный размер: {MAX_SIZE_BYTES // (1024*1024)} МБ"
+            )
+            return
+
+        # 4) Подготовка путей
+        TEMP_DIR.mkdir(parents=True, exist_ok=True)
+        # Аккуратно получаем расширение
+        original_name = document.file_name or ""
+        ext = (original_name.rsplit(".", 1)[-1] if "." in original_name else "").lower()
+        if ext not in ALLOWED_EXTS:
+            # если расширения нет или оно экзотическое — подставим mp4
+            ext = "mp4"
+
+        unique = uuid.uuid4().hex[:10]
+        # Делаем имя уникальным и не зависящим от исходного
+        file_path = TEMP_DIR / f"video_{message.from_user.id}_{unique}.{ext}"
+
+        # 5) Скачивание (aiogram v3)
+        # Можно скачать либо по file_id напрямую, либо через get_file
+        bot = message.bot
+        # Вариант А: напрямую по file_id:
+        await bot.download(document.file_id, destination=file_path)
+        # Вариант Б (эквивалентно):
+        # file = await bot.get_file(document.file_id)
+        # await bot.download(file, destination=file_path)
+
+        # 6) Сохраняем метаданные
         video_data[message.from_user.id] = {
-            'file_path': file_path,
-            'file_name': document.file_name,
-            'file_size': document.file_size
+            "file_path": str(file_path),
+            "file_name": original_name or file_path.name,
+            "file_size": file_size,
+            "mime_type": mime,
         }
-        
+
+        # 7) Ответ пользователю и переключение стейта
+        size_mb = (file_size // (1024 * 1024)) if file_size else "неизв."
         await message.answer(
-            f"✅ Видео получено!\n\n"
-            f"📁 Файл: {document.file_name}\n"
-            f"📊 Размер: {document.file_size // (1024*1024)} МБ\n\n"
-            f"📝 Теперь отправьте описание для видео:"
+            "✅ Видео получено!\n\n"
+            f"📁 Файл: {video_data[message.from_user.id]['file_name']}\n"
+            f"📊 Размер: {size_mb} МБ\n\n"
+            "📝 Теперь отправьте описание для видео:"
         )
-        
         await state.set_state(TikTokUploadStates.waiting_for_description)
-        
+
     except Exception as e:
-        logger.error(f"Ошибка при загрузке видео: {e}")
+        logger.exception("Ошибка при загрузке видео")
         await message.answer(
-            "❌ Произошла ошибка при загрузке видео. Попробуйте еще раз или обратитесь к разработчику."
+            "❌ Произошла ошибка при загрузке видео. Попробуйте ещё раз или обратитесь к разработчику."
         )
         await state.clear()
 
