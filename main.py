@@ -4,7 +4,7 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
-from handlers import start, calc, profiles, parser, file_id, tests, creator
+from handlers import start, calc, profiles, parser, file_id, tests, creator, tiktok
 from methods import admin, users
 from keyboards import menu
 from config import BOT_TOKEN
@@ -49,7 +49,8 @@ async def main():
         tests.router,
         #parser.router,
         file_id.router,
-        creator.router
+        creator.router,
+        tiktok.router
     )
     
     # Start background tasks

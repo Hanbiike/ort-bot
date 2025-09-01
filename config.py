@@ -10,6 +10,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")  # Get this from @BotFather
 API_TOKEN = BOT_TOKEN  # Alias for consistency
 
+TIKTOK_SESSION_ID = os.getenv("TIKTOK_SESSION_ID", "")
 # OpenAI API settings - load from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
