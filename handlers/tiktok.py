@@ -89,18 +89,18 @@ async def handle_video_document(message: types.Message, state: FSMContext):
     try:
         # Получаем файл
         file = await bot.get_file(document.file_id)
-        
+        print("Файл загружен")
         # Создаем папку для временных файлов
         temp_dir = "temp_videos"
         os.makedirs(temp_dir, exist_ok=True)
-        
+        print("Папка для временных файлов создана")
         # Формируем путь к файлу
         file_extension = document.file_name.split('.')[-1] if '.' in document.file_name else 'mp4'
         file_path = os.path.join(temp_dir, f"video_{message.from_user.id}.{file_extension}")
-        
+        print(f"Путь к файлу: {file_path}")
         # Скачиваем файл
         await bot.download_file(file.file_path, file_path)
-        
+        print("Файл загружен")
         # Сохраняем данные о видео
         video_data[message.from_user.id] = {
             'file_path': file_path,
