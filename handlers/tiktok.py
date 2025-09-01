@@ -36,7 +36,7 @@ def create_confirmation_keyboard():
     )
     return builder.as_markup()
 
-@router.message(Command("tiktok"))
+@router.message(F.text.lower() == "tiktok")
 async def cmd_tiktok(message: types.Message, state: FSMContext):
     """Команда для начала загрузки видео в TikTok (только для HAN в ЛС)"""
     # Проверяем, что это личные сообщения
